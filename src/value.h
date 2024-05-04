@@ -2,6 +2,8 @@
 #define VALUE_H
 
 #include <string>
+#include <memory>
+
 
 enum class ValueType {
     BOOLEAN_VALUE,
@@ -26,6 +28,8 @@ public:
     ValueType getType() const {
         return type;
     }
+
+    virtual std::string toString() const = 0;
 };
 
 class BooleanValue : public Value {
@@ -44,6 +48,8 @@ public:
     bool getValue() const {
         return value;
     }
+
+    virtual std::string toString() const override;
 };
 
 class NumericValue : public Value {
@@ -61,6 +67,8 @@ public:
     double getValue() const {
         return value;
     }
+
+    virtual std::string toString() const override;
 };
 
 class StringValue : public Value {
@@ -79,6 +87,8 @@ public:
     const std::string& getValue() const {
         return value;
     }
+
+    virtual std::string toString() const override;
 };
 
 class NilValue : public Value {
@@ -88,6 +98,8 @@ public:
     NilValue(const NilValue& n) : Value(n) {}
 
     virtual ~NilValue() = default;
+
+    virtual std::string toString() const override;
 };
 
 class SymbolValue : public Value {
@@ -106,6 +118,37 @@ public:
     const std::string& getName() const {
         return name;
     }
+
+    virtual std::string toString() const override;
+};
+
+class PairValue : public Value {
+private:
+    std::shared_ptr<Value> left;
+    std::shared_ptr<Value> right;
+
+public:
+    PairValue() = delete;
+
+    PairValue(std::shared_ptr<Value>& left, std::shared_ptr<Value>& right) : Value{ValueType::PAIR_VALUE}, left{left}, right{right} {}
+
+    PairValue(const PairValue& p) : Value{p}, left{p.left}, right{p.right} {}
+
+    virtual ~PairValue() = default;
+
+    const auto& getValue() const {
+        return std::pair{left, right};
+    }
+
+    const auto& getLeft() const {
+        return left;
+    }
+
+    const auto& getRight() const {
+        return right;
+    }
+
+    virtual std::string toString() const override;
 };
 
 #endif  // VALUE_H
