@@ -16,20 +16,15 @@ add_executable(mini_lisp ${SOURCES})
 # 设置 C++ 标准
 set_target_properties(
   mini_lisp
-  PROPERTIES CXX_STANDARD 20
+  PROPERTIES CXX_STANDARD 17
              CXX_STANDARD_REQUIRED ON
 )
 
-# 设置输出目录
-set_target_properties(
-  mini_lisp
-  PROPERTIES
-  RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_SOURCE_DIR}/bin
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_SOURCE_DIR}/bin
-)
 
-# 如果是 MinGW 编译器，设置编译选项
 if(MINGW)
-  target_compile_options(mini_lisp PRIVATE -municode -mconsole)
+  target_compile_options(mini_lisp PRIVATE -fexceptions)
+endif()
+
+if(WIN32)
+    target_link_libraries(mini_lisp ws2_32)
 endif()

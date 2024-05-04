@@ -1,5 +1,5 @@
 #include <iostream>
-#include "./value.h"
+#include "../include/value.h"
 
 using ValuePtr = std::shared_ptr<Value>; // 把这个添加到 value.h，可以减少许多重复的代码。
 int main() {

@@ -1,5 +1,6 @@
-#include "./value.h"
+#include "../include/value.h"
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <vector>
 #include <typeinfo>
@@ -46,14 +47,13 @@ std::string PairValue::toString() const {
     const Value* v = pharase(vec, ptr);
     std::string result = "(";
     if(dynamic_cast<const NilValue*>(v)) {
-        for(int i = 0; i < result.size(); i++) {
-            result += vec[i] + " ";
+        for(int i = 0; i < vec.size() - 1; i++) {
+            result += (vec[i] + " ");
         }
-        result.pop_back();
-        result += ")";
+        result.back() = ')';
     }
     else {
-        for(int i = 0; i < result.size() - 1; i++) {
+        for(int i = 0; i < vec.size() - 1; i++) {
             result += vec[i] + " ";
         }
         result += ". )";
