@@ -130,21 +130,21 @@ private:
 public:
     PairValue() = delete;
 
-    PairValue(std::shared_ptr<Value>& left, std::shared_ptr<Value>& right) : Value{ValueType::PAIR_VALUE}, left{left}, right{right} {}
+    PairValue(const std::shared_ptr<Value>& left, const std::shared_ptr<Value>& right) : Value{ValueType::PAIR_VALUE}, left{left}, right{right} {}
 
     PairValue(const PairValue& p) : Value{p}, left{p.left}, right{p.right} {}
 
     virtual ~PairValue() = default;
 
-    const auto& getValue() const {
-        return std::pair{left, right};
+    const auto getValue() const {
+        return std::make_pair(left, right);
     }
 
-    const auto& getLeft() const {
+    auto& getLeft() const {
         return left;
     }
 
-    const auto& getRight() const {
+    auto& getRight() const {
         return right;
     }
 
