@@ -1,0 +1,7 @@
+1.考虑到构造的时候可能是从const char*类型，需要隐形转换
+  到string类型，需要是const std::string。
+2.使用智能指针，使得Token类型指针一定会被delete，避免内存泄漏
+3.token是TokenPtr，即std::unique_ptr<Token>，重载了*运算符，
+  返回的是Token类型的对象，而我们又重载了流输出运算符
+4.用try-catch块处理，将错误信息捕获并输出其具体信息。
+5.deque如果需要在队首插入，是常数时间，而vector在数组首个元素前插入的时候是O(N)。
