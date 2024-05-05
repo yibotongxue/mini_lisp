@@ -1,7 +1,9 @@
-1.考虑到构造的时候可能是从const char*类型，需要隐形转换
-  到string类型，需要是const std::string。
-2.使用智能指针，使得Token类型指针一定会被delete，避免内存泄漏
+1.考虑到构造的时候可能是从常量字符串构造，如果是std::string& 会报错，因为无法实现从
+  const char[]隐形转换为std::string&，而const std::string&可以解决这个问题
+2.使用智能指针，使得Token类型指针一定会被delete，避免内存泄漏。如果使用Token*，
+  如果程序运行中抛出异常，可能跳过释放Token*指向的内存的代码，从而导致内存泄漏。
 3.token是TokenPtr，即std::unique_ptr<Token>，重载了*运算符，
-  返回的是Token类型的对象，而我们又重载了流输出运算符
-4.用try-catch块处理，将错误信息捕获并输出其具体信息。
-5.deque如果需要在队首插入，是常数时间，而vector在数组首个元素前插入的时候是O(N)。
+  返回的是Token类型的对象，而我们又重载了流输出运算符，可以直接用std::cout << object实现输出。
+4.程序运行过程中如果出现错误，会抛出异常，并被catch块捕捉，进而被其后跟着的代码处理，
+  main.cpp中是将异常信息通过标准输出反馈给程序员。
+5.deque可以通过常数项时间实现头部的插入和删除，而vector不可以。

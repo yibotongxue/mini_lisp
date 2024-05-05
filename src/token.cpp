@@ -1,4 +1,4 @@
-#include "./token.h"
+#include "../include/token.h"
 
 #include <iomanip>
 #include <sstream>
