@@ -2,26 +2,30 @@
 > File Name:     parser.h
 > Author:        林毅波
 > Created Time:  2024/5/12 10:10:56
-> Description:  lisp的语法分析器 
+> Description:   lisp的语法分析器 
  ************************************************************************/
+
 #include "../include/token.h"
 #include "../include/tokenizer.h"
 #include "../include/value.h"
 #include <queue>
+
 /**
- *这是负责解析lisp语法的类,也就是读取器
- *
- *
+ * 这是负责解析lisp语法的类,也就是读取器
+ * tokens作为解析的对象，成为Parser对象的私有变量，控制访问
+ * Parser类有构造函数，可以从 std::deque<TokenPtr> tokens 构造
+ * 函数 parse 负责解析对象，返回 Value 对象的共享指针
+ * @note 构造的时候，由于 TokenPtr 对象不允许复制，需要移动构造
  */
 class Parser{
 private:
     std::deque<TokenPtr> tokens;    // 一系列词法标记
+
 public:
     /**
      * Paraser类的构造函数，从一系列词法标记构造
      * @param tokens: 一系列词法标记
      */
-
     Parser(std::deque<TokenPtr> tokens);
     
     /*

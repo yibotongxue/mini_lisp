@@ -14,7 +14,9 @@ ValuePtr Parser::parse() {
     if(tokens.empty()) {
         throw SyntaxError("Empty tokens");
     }
+
     auto token = std::move(tokens.front());
+    
     if(token->getType() == TokenType::NUMERIC_LITERAL) {
         auto value = static_cast<NumericLiteralToken&>(*token).getValue();
         return std::make_shared<NumericValue>(value);
