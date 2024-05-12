@@ -14,6 +14,10 @@ enum class ValueType {
     PAIR_VALUE
 };
 
+class Value;
+
+using ValuePtr = std::shared_ptr<Value>;
+
 class Value {
 private:
     ValueType type;
@@ -130,7 +134,7 @@ private:
 public:
     PairValue() = delete;
 
-    PairValue(const std::shared_ptr<Value>& left, const std::shared_ptr<Value>& right) : Value{ValueType::PAIR_VALUE}, left{left}, right{right} {}
+    PairValue(const ValuePtr& left, const ValuePtr& right) : Value{ValueType::PAIR_VALUE}, left{left}, right{right} {}
 
     PairValue(const PairValue& p) : Value{p}, left{p.left}, right{p.right} {}
 
