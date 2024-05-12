@@ -115,7 +115,7 @@ public:
 
     SymbolValue(const std::string& name) : Value{ValueType::SYMBOL_VALUE}, name{name} {}
 
-    SymbolValue(const SymbolValue& symbol) : Value{symbol}, name{symbol.name} {}
+
 
     virtual ~SymbolValue() = default;
 

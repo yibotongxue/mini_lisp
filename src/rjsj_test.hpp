@@ -162,7 +162,7 @@ inline std::deque<Token> tokenize(const std::string& input) {
                 do {
                     pos++;
                 } while (pos < input.size() && !std::isspace(input[pos]) &&
-                         !TOKEN_END.contains(input[pos]));
+                         TOKEN_END.find(input[pos]) == TOKEN_END.end());
                 auto text = input.substr(start, pos - start);
                 if (text == ".") {
                     return Token{DotToken{}};

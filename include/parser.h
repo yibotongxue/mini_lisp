@@ -31,6 +31,12 @@ public:
     /*
      * 解析函数，解析对象中的词法标记
      */
-    std::shared_ptr<Value> parse();
+    ValuePtr parse();
+
+    /*
+     * 解析 S-表达式
+     * @return 如果词法标记为空，返回空表，否则返回对子
+     */
+    ValuePtr parseTails();
 };
 

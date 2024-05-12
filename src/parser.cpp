@@ -16,7 +16,8 @@ ValuePtr Parser::parse() {
     }
 
     auto token = std::move(tokens.front());
-    
+    tokens.pop_front();
+
     if(token->getType() == TokenType::NUMERIC_LITERAL) {
         auto value = static_cast<NumericLiteralToken&>(*token).getValue();
         return std::make_shared<NumericValue>(value);
@@ -33,7 +34,63 @@ ValuePtr Parser::parse() {
         auto value = static_cast<IdentifierToken&>(*token).getName();
         return std::make_shared<SymbolValue>(value);
     }
+    else if(token->getType() == TokenType::LEFT_PAREN) {
+        return this->parseTails();
+    }
+    else if(token->getType() == TokenType::QUOTE) {
+        return std::make_shared<PairValue>(
+          std::make_shared<SymbolValue>("quote"),
+          std::make_shared<PairValue>(
+              this->parse(),
+              std::make_shared<NilValue>()
+              )
+          );
+    }
+    else if(token->getType() == TokenType::QUASIQUOTE) {
+        return std::make_shared<PairValue>(
+          std::make_shared<SymbolValue>("quasiquote"),
+          std::make_shared<PairValue>(
+              this->parse(),
+              std::make_shared<NilValue>()
+              )
+          );
+    }
+    else if(token->getType() == TokenType::UNQUOTE) {
+        return std::make_shared<PairValue>(
+          std::make_shared<SymbolValue>("unquote"),
+          std::make_shared<PairValue>(
+              this->parse(),
+              std::make_shared<NilValue>()
+              )
+          );
+    }
     else {
         throw SyntaxError("Unimplemented");
     }
+}
+
+ValuePtr Parser::parseTails() {
+    try{
+        if(tokens.front()->getType() == TokenType::RIGHT_PAREN) {
+            tokens.pop_front();
+            return std::make_shared<NilValue>();
+        }
+    }
+    catch(...) {
+        throw SyntaxError("eof");
+    }
+    auto car = this->parse();
+    if(tokens.front()->getType() == TokenType::DOT) {
+        tokens.pop_front();
+        auto cdr = this->parse();
+        if(tokens.front()->getType() != TokenType::RIGHT_PAREN) {
+            throw SyntaxError("Unmatched parens");
+        }
+        tokens.pop_front();
+        return std::make_shared<PairValue>(car, cdr);
+    } else {
+        auto cdr = this->parseTails();
+        return std::make_shared<PairValue>(car, cdr);
+    }
+    return nullptr;
 }

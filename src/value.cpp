@@ -56,7 +56,8 @@ std::string PairValue::toString() const {
         for(int i = 0; i < vec.size() - 1; i++) {
             result += vec[i] + " ";
         }
-        result += ". )";
+        result += ". ";
+        result += vec[vec.size() - 1] + ")";
     }
     return result;
 }
