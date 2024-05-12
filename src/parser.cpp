@@ -8,13 +8,13 @@
 #include "../include/parser.h"
 #include "../include/error.h"
 
-Parser::Parser(std::deque<TokenPtr> tokens) : tokens { tokens } {}
+Parser::Parser(std::deque<TokenPtr> tokens) : tokens { std::move(tokens) } {}
 
 ValuePtr Parser::parse() {
     if(tokens.empty()) {
         throw SyntaxError("Empty tokens");
     }
-    auto& token = tokens.front();
+    auto token = std::move(tokens.front());
     if(token->getType() == TokenType::NUMERIC_LITERAL) {
         auto value = static_cast<NumericLiteralToken&>(*token).getValue();
         return std::make_shared<NumericValue>(value);

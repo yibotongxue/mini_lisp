@@ -6,7 +6,10 @@ include_directories(include)
 
 # 将源文件列表保存到变量中
 set(SOURCES
+    src/token.cpp
+    src/tokenizer.cpp
     src/value.cpp
+    src/parser.cpp
     src/main.cpp
 )
 
