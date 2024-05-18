@@ -2,6 +2,8 @@
 #define VALUE_H
 
 #include <string>
+#include <vector>
+#include <optional>
 #include <memory>
 
 
@@ -38,6 +40,12 @@ public:
     bool isNil() const;
 
     bool isSelfEvaluating() const;
+
+    bool isList() const;
+
+    bool isSymbol() const;
+
+    virtual std::optional<std::string> asSymbol() const;
 };
 
 class BooleanValue : public Value {
@@ -128,6 +136,8 @@ public:
     }
 
     virtual std::string toString() const override;
+
+    virtual std::optional<std::string> asSymbol() const override;
 };
 
 class PairValue : public Value {
@@ -157,6 +167,8 @@ public:
     }
 
     virtual std::string toString() const override;
+
+    std::vector<ValuePtr> toVector() const;
 };
 
 #endif  // VALUE_H

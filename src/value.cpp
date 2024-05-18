@@ -2,7 +2,6 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <vector>
 #include <typeinfo>
 
 bool Value::isNil() const {
@@ -17,6 +16,26 @@ bool Value::isSelfEvaluating() const {
        type == ValueType::STRING_VALUE)
         return true;
     return false;
+}
+
+bool Value::isList() const {
+    if(type == ValueType::PAIR_VALUE)
+        return true;
+    return false;
+}
+
+bool Value::isSymbol() const {
+    if(type == ValueType::SYMBOL_VALUE)
+        return true;
+    return false;
+}
+
+std::optional<std::string> Value::asSymbol() const {
+   return std::nullopt;
+}
+
+std::optional<std::string> SymbolValue::asSymbol() const {
+    return { name };
 }
 
 std::string BooleanValue::toString() const {
@@ -43,24 +62,25 @@ std::string SymbolValue::toString() const {
     return name;
 }
 
-const Value* pharase(std::vector<std::string>& result, const Value* ptr) {
-    if(dynamic_cast<const PairValue*>(ptr)) {
-        const PairValue* p = dynamic_cast<const PairValue*>(ptr);
-        pharase(result, p->getLeft().get());
-        return pharase(result, p->getRight().get());
+const Value& pharase(std::vector<std::string>& result, const Value& ref) {
+    if(typeid(ref) == typeid(PairValue&)) {
+        const PairValue& r = dynamic_cast<const PairValue&>(ref);
+        pharase(result, *(r.getLeft()));
+        const Value& reff = pharase(result, *(r.getRight()));
+        return reff;
     }
     else {
-        result.push_back(ptr->toString());
+        result.push_back(ref.toString());
     }
-    return ptr;
+    return ref;
 }
 
 std::string PairValue::toString() const {
     std::vector<std::string> vec{};
-    const Value* ptr = dynamic_cast<const Value*>(this);
-    const Value* v = pharase(vec, ptr);
+    const Value& ref = dynamic_cast<const Value&>(*this);
+    const Value& v = pharase(vec, ref);
     std::string result = "(";
-    if(dynamic_cast<const NilValue*>(v)) {
+    if(typeid(v) == typeid(NilValue&)) {
         for(int i = 0; i < vec.size() - 1; i++) {
             result += (vec[i] + " ");
         }
@@ -74,4 +94,22 @@ std::string PairValue::toString() const {
         result += vec[vec.size() - 1] + ")";
     }
     return result;
+}
+
+void backtracking(std::vector<ValuePtr>& result, ValuePtr ptr) {
+    if(ptr->isList()) {
+        auto p = std::dynamic_pointer_cast<PairValue>(ptr);
+        backtracking(result, p->getLeft());
+        backtracking(result, p->getRight());
+    }
+    else {
+        result.push_back(ptr);
+    }
+}
+
+std::vector<ValuePtr> PairValue::toVector() const {
+    std::vector<ValuePtr> vec{};
+    ValuePtr ptr(const_cast<PairValue*>(this));
+    backtracking(vec, ptr);
+    return vec;
 }
