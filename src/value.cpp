@@ -5,6 +5,20 @@
 #include <vector>
 #include <typeinfo>
 
+bool Value::isNil() const {
+    if(type == ValueType::NIL_VALUE)
+        return true;
+    return false;
+}
+
+bool Value::isSelfEvaluating() const {
+    if(type == ValueType::BOOLEAN_VALUE ||
+       type == ValueType::NUMERIC_VALUE ||
+       type == ValueType::STRING_VALUE)
+        return true;
+    return false;
+}
+
 std::string BooleanValue::toString() const {
     return value? "#t" : "#f";
 }

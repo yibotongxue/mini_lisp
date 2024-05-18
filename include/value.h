@@ -34,6 +34,10 @@ public:
     }
 
     virtual std::string toString() const = 0;
+
+    bool isNil() const;
+
+    bool isSelfEvaluating() const;
 };
 
 class BooleanValue : public Value {
