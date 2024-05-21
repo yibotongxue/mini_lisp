@@ -10,33 +10,54 @@
 
 using namespace std::literals;
 
-extern void backtracking(std::vector<ValuePtr>& v, ValuePtr ptr);
-
+/**
+ * @brief 对给定的表达式进行求值
+ * 
+ * @param expr 要求值的表达式
+ * @return 求值结果的指针
+ * @throw LispError 如果求值过程中出现错误，则抛出异常
+ */
 ValuePtr EvalEnv::eval(ValuePtr expr) {
+    // 检查表达式的类型并执行相应操作
+
     if (expr->isSelfEvaluating()) {
+        // 如果表达式是自求值类型，则直接返回
         return expr;
     }
     else if (expr->isNil()) {
+        // 禁止对空表进行评估，抛出异常
         throw LispError("Evaluating nil is prohibited.");
     }
     else if (expr->isList()) {
+        // 如果表达式是列表类型，则解析列表并执行相应操作
+        
+        // 解析表达式为向量
         auto ptr = std::dynamic_pointer_cast<PairValue>(expr);
         std::vector<ValuePtr> v{};
-        backtracking(v, expr);
+        valueNameSpace::backtracking(v, expr);
+
+        // 根据列表的首元素执行不同的操作
         if (v[0]->asSymbol() == "define"s) {
+            // 如果是 define 操作符，则进行定义操作
             if (auto name = v[1]->asSymbol()) {
+                // 获取定义名称
                 symbolList[std::dynamic_pointer_cast<SymbolValue>(v[1])->getName()] = eval(v[2]);
+                // 返回空表表示成功
                 return std::make_shared<NilValue>();
             }
             else {
+                // define 操作符形式错误，抛出异常
                 throw LispError("Malformed define.");
             }
         }
         else {
+            // 其他操作符暂未实现，抛出异常
             throw LispError("Unimplemented");
         }
     }
     else if (expr->isSymbol()) {
+        // 如果表达式是符号类型，则查找并返回符号对应的值
+
         auto name = std::dynamic_pointer_cast<SymbolValue>(expr)->getName();
         auto it = symbolList.find(name);
         if(it == symbolList.end())
@@ -45,6 +66,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
             return ValuePtr(it->second);
     }
     else {
+        // 其他类型的表达式暂未实现，抛出异常
         throw LispError("Unimplemented");
     }
 }

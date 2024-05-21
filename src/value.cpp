@@ -4,12 +4,26 @@
 #include <sstream>
 #include <typeinfo>
 
+/**
+ * @brief 判断值是否为空表类型的函数
+ * 
+ * @return 如果值的类型是空表类型，则返回 true；否则返回 false。
+ * 
+ * @note 这是一个只读函数，不会改变对象的内容。
+*/
 bool Value::isNil() const {
     if(type == ValueType::NIL_VALUE)
         return true;
     return false;
 }
 
+/**
+ * @brief 判断值是否为自求值类型的函数
+ * 
+ * @return 如果值的类型是布尔类型、数值类型或字符串类型，则返回 true；否则返回 false。
+ * 
+ * @note 这是一个只读函数，不会改变对象的内容。
+*/
 bool Value::isSelfEvaluating() const {
     if(type == ValueType::BOOLEAN_VALUE ||
        type == ValueType::NUMERIC_VALUE ||
@@ -18,98 +32,184 @@ bool Value::isSelfEvaluating() const {
     return false;
 }
 
+/**
+ * @brief 判断值是否为对子类型的函数
+ * 
+ * @return 如果值的类型是对子类型，则返回 true；否则返回 false。
+ * 
+ * @note 这是一个只读函数，不会改变对象的内容。
+*/
 bool Value::isList() const {
     if(type == ValueType::PAIR_VALUE)
         return true;
     return false;
 }
 
+/**
+ * @brief 判断值是否为符号类型的函数
+ * 
+ * @return 如果值的类型是符号类型，则返回 true；否则返回 false。
+ * 
+ * @note 这是一个只读函数，不会改变对象的内容。
+*/
 bool Value::isSymbol() const {
     if(type == ValueType::SYMBOL_VALUE)
         return true;
     return false;
 }
 
+/**
+ * @brief 将值作为符号返回，这里处理不是符号的情况
+ * 
+ * @return 返回 std::nullopt
+*/
 std::optional<std::string> Value::asSymbol() const {
    return std::nullopt;
 }
 
+/**
+ * @brief 将值作为符号返回，这里处理值类型就是符号类型的情况
+ * 
+ * @return 返回用符号名称构造的 std::optional<std::string> 对象
+*/
 std::optional<std::string> SymbolValue::asSymbol() const {
     return { name };
 }
 
+/**
+ * @brief 获取布尔值的外部表示的函数
+ * 
+ * @return 返回布尔值的字符串表示，可以是 "#t" 表示真，或 "#f" 表示假
+*/
 std::string BooleanValue::toString() const {
     return value? "#t" : "#f";
 }
 
+/**
+ * @brief 获取数值的外部表示的函数
+ * 
+ * @return 返回数值的字符串表示，如果是整数，则直接返回整数的字符串，否则返回带小数点的浮点数的字符串
+*/
 std::string NumericValue::toString() const {
     if(int(value) == value)
         return std::to_string(int(value));
     return std::to_string(value);
 }
 
+/**
+ * @brief 获取字符串的外部表示的函数
+ * 
+ * @return 返回加引号的字符串
+*/
 std::string StringValue::toString() const {
     std::stringstream ss;
     ss << std::quoted(value);
     return ss.str();
 }
 
+/**
+ * @brief 获取空表的外部表示的函数
+ * 
+ * @return 返回一堆括号的字符串
+*/
 std::string NilValue::toString() const {
     return "()";
 }
 
+/**
+ * @brief 获取符号的外部表示的函数
+ * 
+ * @return 返回符号的名称
+*/
 std::string SymbolValue::toString() const {
     return name;
 }
 
-const Value& pharase(std::vector<std::string>& result, const Value& ref) {
-    if(typeid(ref) == typeid(PairValue&)) {
-        const PairValue& r = dynamic_cast<const PairValue&>(ref);
-        pharase(result, *(r.getLeft()));
-        const Value& reff = pharase(result, *(r.getRight()));
-        return reff;
+namespace valueNameSpace{
+    /**
+     * @brief 解析值并构造字符串表示的函数
+    * 
+    * @param result 用于存储解析后的字符串结果的向量
+     * @param ref 要解析的值的引用
+    * @return 返回解析后的值的引用
+    * 
+    * @note 该函数递归地解析值并构造字符串表示。如果值是一个 PairValue，则递归地解析其左右部分。
+    *       如果值不是 PairValue，则将其转换为字符串并存储在结果向量中。
+    */
+    const Value& pharase(std::vector<std::string>& result, const Value& ref) {
+        if(typeid(ref) == typeid(PairValue&)) {
+            const PairValue& r = dynamic_cast<const PairValue&>(ref);
+            pharase(result, *(r.getLeft())); // 递归解析左侧值
+          const Value& reff = pharase(result, *(r.getRight())); // 递归解析右侧值
+          return reff;
+      }
+      else {
+            result.push_back(ref.toString()); // 将非 PairValue 类型值转换为字符串并存储
+     }
+      return ref; // 返回解析后的值的引用
     }
-    else {
-        result.push_back(ref.toString());
-    }
-    return ref;
-}
 
+    /**
+    * @brief 回溯函数，将 PairValue 对象转换为值指针向量
+    * 
+    * @param result 用于存储转换后的值指针向量
+    * @param ptr 要转换的 PairValue 对象的指针
+     * 
+    * @note 如果给定的值是一个对子（PairValue 对象），则递归地遍历其左右部分。
+    * 如果给定的值不是列表，则将其添加到结果向量中。
+    */
+    void backtracking(std::vector<ValuePtr>& result, ValuePtr ptr) {
+        if(ptr->isList()) { // 如果值是列表
+            auto p = std::dynamic_pointer_cast<PairValue>(ptr);
+            valueNameSpace::backtracking(result, p->getLeft()); // 递归处理左侧部分
+            valueNameSpace::backtracking(result, p->getRight()); // 递归处理右侧部分
+        }
+        else {
+            result.push_back(ptr); // 如果值不是泪飙，将其添加到结果向量中
+        }
+    }
+};
+
+/**
+ * @brief 获取 PairValue 对象的外部表示的函数
+ * 
+ * @return 返回 PairValue 对象的字符串表示
+ * 
+ * @note 该函数使用解析函数 `pharase()` 解析 PairValue 对象，并根据其内容构造字符串表示。
+ *       如果 PairValue 对象的右部分是 NilValue，则结果形如 "(value1 value2 ...)"；
+ *       否则形如 "(value1 value2 ... . valueN)"
+ */
 std::string PairValue::toString() const {
     std::vector<std::string> vec{};
-    const Value& ref = dynamic_cast<const Value&>(*this);
-    const Value& v = pharase(vec, ref);
+    const Value& ref = dynamic_cast<const Value&>(*this); // 引用基类对象
+    const Value& v = valueNameSpace::pharase(vec, ref); // 解析 PairValue 对象
     std::string result = "(";
-    if(typeid(v) == typeid(NilValue&)) {
+    if(typeid(v) == typeid(NilValue&)) { // 检查右侧是否为 NilValue
         for(int i = 0; i < vec.size() - 1; i++) {
-            result += (vec[i] + " ");
+            result += (vec[i] + " "); // 构造左侧部分
         }
-        result.back() = ')';
+        result.back() = ')'; // 添加右括号
     }
     else {
         for(int i = 0; i < vec.size() - 1; i++) {
-            result += vec[i] + " ";
+            result += vec[i] + " "; // 构造左侧部分
         }
-        result += ". ";
-        result += vec[vec.size() - 1] + ")";
+        result += ". "; // 添加点号
+        result += vec[vec.size() - 1] + ")"; // 添加右侧部分
     }
-    return result;
+    return result; // 返回字符串表示
 }
 
-void backtracking(std::vector<ValuePtr>& result, ValuePtr ptr) {
-    if(ptr->isList()) {
-        auto p = std::dynamic_pointer_cast<PairValue>(ptr);
-        backtracking(result, p->getLeft());
-        backtracking(result, p->getRight());
-    }
-    else {
-        result.push_back(ptr);
-    }
-}
-
+/**
+ * @brief 获取 PairValue 对象的值指针向量表示
+ * 
+ * @return 返回 PairValue 对象的值指针向量表示
+ * 
+ * @note 该函数将 PairVlaue 对象转换为值指针向量，通过调用hi苏函数 backtracking() 实现
+*/
 std::vector<ValuePtr> PairValue::toVector() const {
-    std::vector<ValuePtr> vec{};
-    ValuePtr ptr(const_cast<PairValue*>(this));
-    backtracking(vec, ptr);
-    return vec;
+    std::vector<ValuePtr> vec{}; // 创建空的值指针向量
+    ValuePtr ptr(const_cast<PairValue*>(this)); // 创建 PairValue 对象的指针
+    valueNameSpace::backtracking(vec, ptr); // 调用回溯函数进行转换
+    return vec; // 返回转换后的值指针向量
 }
