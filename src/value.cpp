@@ -125,7 +125,7 @@ std::string SymbolValue::toString() const {
     return name;
 }
 
-namespace valueNameSpace{
+namespace{
     /**
      * @brief 解析值并构造字符串表示的函数
     * 
@@ -148,26 +148,6 @@ namespace valueNameSpace{
      }
       return ref; // 返回解析后的值的引用
     }
-
-    /**
-    * @brief 回溯函数，将 PairValue 对象转换为值指针向量
-    * 
-    * @param result 用于存储转换后的值指针向量
-    * @param ptr 要转换的 PairValue 对象的指针
-     * 
-    * @note 如果给定的值是一个对子（PairValue 对象），则递归地遍历其左右部分。
-    * 如果给定的值不是列表，则将其添加到结果向量中。
-    */
-    void backtracking(std::vector<ValuePtr>& result, ValuePtr ptr) {
-        if(ptr->isList()) { // 如果值是列表
-            auto p = std::dynamic_pointer_cast<PairValue>(ptr);
-            valueNameSpace::backtracking(result, p->getLeft()); // 递归处理左侧部分
-            valueNameSpace::backtracking(result, p->getRight()); // 递归处理右侧部分
-        }
-        else {
-            result.push_back(ptr); // 如果值不是泪飙，将其添加到结果向量中
-        }
-    }
 };
 
 /**
@@ -182,7 +162,7 @@ namespace valueNameSpace{
 std::string PairValue::toString() const {
     std::vector<std::string> vec{};
     const Value& ref = dynamic_cast<const Value&>(*this); // 引用基类对象
-    const Value& v = valueNameSpace::pharase(vec, ref); // 解析 PairValue 对象
+    const Value& v = pharase(vec, ref); // 解析 PairValue 对象
     std::string result = "(";
     if(typeid(v) == typeid(NilValue&)) { // 检查右侧是否为 NilValue
         for(int i = 0; i < vec.size() - 1; i++) {
@@ -198,18 +178,4 @@ std::string PairValue::toString() const {
         result += vec[vec.size() - 1] + ")"; // 添加右侧部分
     }
     return result; // 返回字符串表示
-}
-
-/**
- * @brief 获取 PairValue 对象的值指针向量表示
- * 
- * @return 返回 PairValue 对象的值指针向量表示
- * 
- * @note 该函数将 PairVlaue 对象转换为值指针向量，通过调用hi苏函数 backtracking() 实现
-*/
-std::vector<ValuePtr> PairValue::toVector() const {
-    std::vector<ValuePtr> vec{}; // 创建空的值指针向量
-    ValuePtr ptr(const_cast<PairValue*>(this)); // 创建 PairValue 对象的指针
-    valueNameSpace::backtracking(vec, ptr); // 调用回溯函数进行转换
-    return vec; // 返回转换后的值指针向量
 }

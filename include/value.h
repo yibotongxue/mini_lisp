@@ -18,7 +18,8 @@ enum class ValueType {
     STRING_VALUE,   // 字符串类型
     NIL_VALUE,      // 空表类型
     SYMBOL_VALUE,   // 符号类型
-    PAIR_VALUE      // 对子类型
+    PAIR_VALUE,      // 对子类型
+    BUILTIN_PROC_VALUE                // 过程类型
 };
 
 class Value;   // 值类
@@ -554,13 +555,11 @@ public:
      * @note 这是从基类继承来的函数，对基类的 toString() 进行了重载，实现了基类的纯虚函数
     */
     virtual std::string toString() const override;
+};
 
-    /**
-     * @brief 将对子转换为标准容器的函数
-     * 
-     * @return 返回一个包含对子左右元素的 std::vector 容器
-    */
-    std::vector<ValuePtr> toVector() const;
+class BuiltinProcValue : public Value {
+public:
+    BuiltinProcValue() : Value{ValueType::BUILTIN_PROC_VALUE} {}
 };
 
 #endif  // VALUE_H

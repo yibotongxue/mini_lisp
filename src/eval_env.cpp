@@ -6,6 +6,7 @@
  ************************************************************************/
 #include "../include/eval_env.h"
 #include "../include/error.h"
+#include "../include/pair_parser.h"
 #include <iostream>
 
 using namespace std::literals;
@@ -33,8 +34,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         
         // 解析表达式为向量
         auto ptr = std::dynamic_pointer_cast<PairValue>(expr);
-        std::vector<ValuePtr> v{};
-        valueNameSpace::backtracking(v, expr);
+        std::vector<ValuePtr> v = PairParser(ptr).parse();
 
         // 根据列表的首元素执行不同的操作
         if (v[0]->asSymbol() == "define"s) {

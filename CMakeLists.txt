@@ -9,6 +9,7 @@ set(SOURCES
     src/token.cpp
     src/tokenizer.cpp
     src/value.cpp
+    src/pair_parser.cpp
     src/parser.cpp
     src/eval_env.cpp
     src/main.cpp
