@@ -26,14 +26,7 @@ class Value;   // 值类
 
 using ValuePtr = std::shared_ptr<Value>;  // Value 的智能指针
 
-namespace valueNameSpace{
-    const Value& pharase(std::vector<std::string>& result, const Value& ref);
-
-    void backtracking(std::vector<ValuePtr>& result, ValuePtr ptr);
-};
-
-/**
- * @brief Value类是一个抽象类，表示Mini-Lisp的数据类型。
+/* @brief Value类是一个抽象类，表示Mini-Lisp的数据类型。
  * 
  * 这个类作为 Mini-Lisp数据类型的基类，派生类表示的数据类型包括布尔类型、
  * 数类型、字符串类型、空表类型、符号类型、对子类型等。Value 类提供了一个
@@ -371,7 +364,6 @@ public:
     */
     NilValue() : Value{ValueType::NIL_VALUE} {}
 
-
     /**
      * @brief 复制构造函数，从另一个 NilValue 对象复制数据
      * 
@@ -557,9 +549,20 @@ public:
     virtual std::string toString() const override;
 };
 
+using BuiltinFuncType = ValuePtr(const std::vector<ValuePtr>&);
+
 class BuiltinProcValue : public Value {
+private:
+    BuiltinFuncType* func;
+
 public:
-    BuiltinProcValue() : Value{ValueType::BUILTIN_PROC_VALUE} {}
+    BuiltinProcValue(BuiltinFuncType* ptr) : Value{ValueType::BUILTIN_PROC_VALUE}, func{ptr} {}
+
+    virtual std::string toString() const override;
+
+    BuiltinFuncType* getFunction() const {
+        return func;
+    }
 };
 
 #endif  // VALUE_H

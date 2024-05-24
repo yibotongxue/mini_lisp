@@ -6,7 +6,10 @@
  ************************************************************************/
 
 #include "./value.h"
+#include "./builtins.h"
 #include <unordered_map>
+#include <algorithm>
+#include <iterator>
 
 /**
  * @brief EvalEnv 类用于表示表达式的求值环境
@@ -16,7 +19,10 @@
 class EvalEnv {
 private:
     std::unordered_map<std::string, ValuePtr> symbolList; // 用于存储符号和值对应关系的无序映射
+
 public:
+    EvalEnv();
+
     /**
      * @brief 对给定的表达式进行求值
      * 
@@ -24,4 +30,8 @@ public:
      * @return 求值结果的指针
     */
     ValuePtr eval(ValuePtr expr);
+
+    std::vector<ValuePtr> evalList(ValuePtr expr);
+
+    ValuePtr apply(ValuePtr proc, std::vector<ValuePtr>& args);
 };

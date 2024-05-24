@@ -7,9 +7,12 @@
 #include "../include/eval_env.h"
 #include "../include/error.h"
 #include "../include/pair_parser.h"
-#include <iostream>
 
 using namespace std::literals;
+
+EvalEnv::EvalEnv() {
+    symbolList.insert(std::make_pair("+", std::make_shared<BuiltinProcValue>(&add)));
+}
 
 /**
  * @brief 对给定的表达式进行求值
@@ -33,8 +36,9 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         // 如果表达式是列表类型，则解析列表并执行相应操作
         
         // 解析表达式为向量
-        auto ptr = std::dynamic_pointer_cast<PairValue>(expr);
-        std::vector<ValuePtr> v = PairParser(ptr).parse();
+        std::vector<ValuePtr> v = PairParser(expr).parse();
+
+        
 
         // 根据列表的首元素执行不同的操作
         if (v[0]->asSymbol() == "define"s) {
@@ -51,8 +55,9 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
             }
         }
         else {
-            // 其他操作符暂未实现，抛出异常
-            throw LispError("Unimplemented");
+            auto proc = eval(v[0]);
+            std::vector<ValuePtr> args = evalList(expr);
+            return apply(proc, args);
         }
     }
     else if (expr->isSymbol()) {
@@ -69,4 +74,23 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         // 其他类型的表达式暂未实现，抛出异常
         throw LispError("Unimplemented");
     }
+}
+
+
+std::vector<ValuePtr>EvalEnv::evalList(ValuePtr expr) {
+    std::vector<ValuePtr> result;
+    std::vector<ValuePtr> vec = PairParser(expr).parse();
+    for(int i = 1; i < vec.size() - 1; i++) {
+        result.push_back(eval(vec[i]));
+    }
+    return result;
+}
+
+ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr>& args) {
+   if (proc->getType() == ValueType::BUILTIN_PROC_VALUE) {
+       return std::dynamic_pointer_cast<BuiltinProcValue>(proc)->getFunction()(args);
+   }
+   else {
+       throw LispError("Unimplemented");
+   }
 }

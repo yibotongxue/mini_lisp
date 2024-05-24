@@ -179,3 +179,7 @@ std::string PairValue::toString() const {
     }
     return result; // 返回字符串表示
 }
+
+std::string BuiltinProcValue::toString() const {
+    return "#<procedure>";
+}

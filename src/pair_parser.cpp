@@ -24,7 +24,7 @@ namespace{
             backtracking(result, p->getRight()); // 递归处理右侧部分
         }
         else {
-            result.push_back(ptr); // 如果值不是泪飙，将其添加到结果向量中
+            result.push_back(ptr); // 如果值不是列表，将其添加到结果向量中
         }
     }
 }
