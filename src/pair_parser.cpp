@@ -6,13 +6,19 @@
  ************************************************************************/
 
 #include "../include/pair_parser.h"
+#include <iostream>
 
 PairParser::PairParser() : innerTable{} {
     innerTable.insert("+");
+    innerTable.insert("print");
 }
 
 void PairParser::add(const std::string& s) {
     innerTable.insert(s);
+}
+
+const std::unordered_set<std::string> PairParser::getSet() const {
+    return innerTable;
 }
 
 namespace{
@@ -25,21 +31,41 @@ namespace{
     * @note 如果给定的值是一个对子（PairValue 对象），则递归地遍历其左右部分。
     *       如果给定的值不是列表，则将其添加到结果向量中。
     */
-    void backtracking(PairParser& parser, std::vector<ValuePtr>& result, ValuePtr ptr) {
+    std::vector<ValuePtr> backtracking(PairParser& parser, ValuePtr ptr) {
+        std::vector<ValuePtr> result{};
         if(ptr->isList()) { // 如果值是列表
             auto p = std::dynamic_pointer_cast<PairValue>(ptr);
-            backtracking(parser, result, p->getLeft()); // 递归处理左侧部分
-            backtracking(parser, result, p->getRight()); // 递归处理右侧部分
+            if (p->getLeft()->isSymbol()) {
+                auto symbolPtr = std::dynamic_pointer_cast<SymbolValue>(p->getLeft());
+                auto set = parser.getSet();
+                if (set.find(symbolPtr->getName()) != set.end()) {
+                    result.push_back(ptr);
+                    return result;
+                }
+            }
+            std::ranges::copy(backtracking(parser, p->getLeft()), std::back_inserter(result)); // 递归处理左侧部分
+            std::ranges::copy(backtracking(parser, p->getRight()), std::back_inserter(result)); // 递归处理右侧部分
         }
         else {
             result.push_back(ptr); // 如果值不是列表，将其添加到结果向量中
         }
+        return result;
     }
 }
 
 std::vector<ValuePtr> PairParser::parse(ValuePtr ptr) {
-    std::vector<ValuePtr> vec{}; // 创建空的值指针向量
     ValuePtr notConstPtr(std::const_pointer_cast<Value>(ptr)); // 创建 PairValue 对象的指针
-    backtracking(*this, vec, notConstPtr); // 调用回溯函数进行转换
-    return vec; // 返回转换后的值指针向量
+    if (notConstPtr->isList()) {
+        auto p = std::dynamic_pointer_cast<PairValue>(notConstPtr);
+        std::vector<ValuePtr> result{};
+        std::ranges::copy(backtracking(*this, p->getLeft()), std::back_inserter(result));
+        std::ranges::copy(backtracking(*this, p->getRight()), std::back_inserter(result));
+        return result;
+    }
+    else if (notConstPtr->isNil()) {
+        return {};
+    }
+    else {
+        return { notConstPtr };
+    }
 };

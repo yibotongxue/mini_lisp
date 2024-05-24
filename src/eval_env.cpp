@@ -6,11 +6,13 @@
  ************************************************************************/
 #include "../include/eval_env.h"
 #include "../include/error.h"
+#include <iostream>
 
 using namespace std::literals;
 
 EvalEnv::EvalEnv() : symbolList{}, pairParser{} {
     symbolList.insert(std::make_pair("+", std::make_shared<BuiltinProcValue>(&add)));
+    symbolList.insert(std::make_pair("print", std::make_shared<BuiltinProcValue>(&print)));
 }
 
 /**
@@ -44,11 +46,16 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
                 // 获取定义名称
                 auto first_Name = std::dynamic_pointer_cast<SymbolValue>(v[1])->getName();
 
-                auto second_Value = eval(v[2]);
+                auto second_Value = v[2];
 
-                symbolList[first_Name] = second_Value;
+                if (second_Value->isList() && std::dynamic_pointer_cast<PairValue>(second_Value)->getRight()->isNil()) {
+                    symbolList[first_Name] = eval(std::dynamic_pointer_cast<PairValue>(second_Value)->getLeft());
+                }
+                else {
+                    symbolList[first_Name] = eval(second_Value);
+                }
 
-                if(second_Value->getType() == ValueType::BUILTIN_PROC_VALUE) {
+                if(symbolList[first_Name]->getType() == ValueType::BUILTIN_PROC_VALUE) {
                     pairParser.add(first_Name);
                 }
 
@@ -81,7 +88,6 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         throw LispError("Unimplemented");
     }
 }
-
 
 std::vector<ValuePtr>EvalEnv::evalList(ValuePtr expr) {
     std::vector<ValuePtr> result;

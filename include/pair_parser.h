@@ -7,6 +7,8 @@
 
 # include "../include/value.h"
 # include <unordered_set>
+# include <algorithm>
+# include <iterator>
 
 class PairParser {
 private:
@@ -15,6 +17,8 @@ public:
     PairParser();
 
     void add(const std::string& s);
+
+    const std::unordered_set<std::string> getSet() const;
 
     std::vector<ValuePtr> parse(ValuePtr ptr);
 };

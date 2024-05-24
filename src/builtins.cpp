@@ -7,6 +7,7 @@
 
 #include "..\include\builtins.h"
 #include "../include/error.h"
+#include <iostream>
 
 ValuePtr add(const std::vector<ValuePtr>& params) {
     double result = 0;
@@ -17,4 +18,11 @@ ValuePtr add(const std::vector<ValuePtr>& params) {
         result += std::dynamic_pointer_cast<NumericValue>(i)->getValue();
     }
     return std::make_shared<NumericValue>(result);
+}
+
+ValuePtr print(const std::vector<ValuePtr>& params) {
+    for (const auto& param : params) {
+        std::cout << param->toString() << std::endl;
+    }
+    return std::make_shared<NilValue>();
 }
