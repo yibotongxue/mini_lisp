@@ -6,12 +6,15 @@
  ************************************************************************/
 
 # include "../include/value.h"
+# include <unordered_set>
 
 class PairParser {
 private:
-    ValuePtr pairPtr;
+    std::unordered_set<std::string> innerTable;
 public:
-    PairParser(ValuePtr ptr) : pairPtr{ptr} {}
+    PairParser();
 
-    std::vector<ValuePtr> parse() const;
+    void add(const std::string& s);
+
+    std::vector<ValuePtr> parse(ValuePtr ptr);
 };

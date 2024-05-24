@@ -7,6 +7,14 @@
 
 #include "../include/pair_parser.h"
 
+PairParser::PairParser() : innerTable{} {
+    innerTable.insert("+");
+}
+
+void PairParser::add(const std::string& s) {
+    innerTable.insert(s);
+}
+
 namespace{
     /**
     * @brief 回溯函数，将 PairValue 对象转换为值指针向量
@@ -17,11 +25,11 @@ namespace{
     * @note 如果给定的值是一个对子（PairValue 对象），则递归地遍历其左右部分。
     *       如果给定的值不是列表，则将其添加到结果向量中。
     */
-    void backtracking(std::vector<ValuePtr>& result, ValuePtr ptr) {
+    void backtracking(PairParser& parser, std::vector<ValuePtr>& result, ValuePtr ptr) {
         if(ptr->isList()) { // 如果值是列表
             auto p = std::dynamic_pointer_cast<PairValue>(ptr);
-            backtracking(result, p->getLeft()); // 递归处理左侧部分
-            backtracking(result, p->getRight()); // 递归处理右侧部分
+            backtracking(parser, result, p->getLeft()); // 递归处理左侧部分
+            backtracking(parser, result, p->getRight()); // 递归处理右侧部分
         }
         else {
             result.push_back(ptr); // 如果值不是列表，将其添加到结果向量中
@@ -29,9 +37,9 @@ namespace{
     }
 }
 
-std::vector<ValuePtr> PairParser::parse() const {
+std::vector<ValuePtr> PairParser::parse(ValuePtr ptr) {
     std::vector<ValuePtr> vec{}; // 创建空的值指针向量
-    ValuePtr ptr(std::const_pointer_cast<Value>(pairPtr)); // 创建 PairValue 对象的指针
-    backtracking(vec, ptr); // 调用回溯函数进行转换
+    ValuePtr notConstPtr(std::const_pointer_cast<Value>(ptr)); // 创建 PairValue 对象的指针
+    backtracking(*this, vec, notConstPtr); // 调用回溯函数进行转换
     return vec; // 返回转换后的值指针向量
 };

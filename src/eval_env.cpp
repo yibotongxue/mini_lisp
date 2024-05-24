@@ -6,11 +6,10 @@
  ************************************************************************/
 #include "../include/eval_env.h"
 #include "../include/error.h"
-#include "../include/pair_parser.h"
 
 using namespace std::literals;
 
-EvalEnv::EvalEnv() {
+EvalEnv::EvalEnv() : symbolList{}, pairParser{} {
     symbolList.insert(std::make_pair("+", std::make_shared<BuiltinProcValue>(&add)));
 }
 
@@ -36,16 +35,23 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         // 如果表达式是列表类型，则解析列表并执行相应操作
         
         // 解析表达式为向量
-        std::vector<ValuePtr> v = PairParser(expr).parse();
-
-        
+        std::vector<ValuePtr> v = pairParser.parse(expr); 
 
         // 根据列表的首元素执行不同的操作
         if (v[0]->asSymbol() == "define"s) {
             // 如果是 define 操作符，则进行定义操作
             if (auto name = v[1]->asSymbol()) {
                 // 获取定义名称
-                symbolList[std::dynamic_pointer_cast<SymbolValue>(v[1])->getName()] = eval(v[2]);
+                auto first_Name = std::dynamic_pointer_cast<SymbolValue>(v[1])->getName();
+
+                auto second_Value = eval(v[2]);
+
+                symbolList[first_Name] = second_Value;
+
+                if(second_Value->getType() == ValueType::BUILTIN_PROC_VALUE) {
+                    pairParser.add(first_Name);
+                }
+
                 // 返回空表表示成功
                 return std::make_shared<NilValue>();
             }
@@ -79,7 +85,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
 
 std::vector<ValuePtr>EvalEnv::evalList(ValuePtr expr) {
     std::vector<ValuePtr> result;
-    std::vector<ValuePtr> vec = PairParser(expr).parse();
+    std::vector<ValuePtr> vec = pairParser.parse(expr);
     for(int i = 1; i < vec.size() - 1; i++) {
         result.push_back(eval(vec[i]));
     }
