@@ -26,3 +26,8 @@ ValuePtr print(const std::vector<ValuePtr>& params) {
     }
     return std::make_shared<NilValue>();
 }
+
+std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
+    {"+", &add},
+    {"print", &print}
+};

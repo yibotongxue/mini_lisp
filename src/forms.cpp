@@ -7,6 +7,7 @@
 
 #include "../include/forms.h"
 #include "../include/error.h"
+#include "../include/builtins.h"
 
 ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (auto name = args[1]->asSymbol()) {
@@ -22,6 +23,7 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
         }
 
         if (env.symbolList[first_Name]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+            innerSymbolTable.insert(std::make_pair(first_Name, std::dynamic_pointer_cast<BuiltinProcValue>(env.symbolList[first_Name])->getFunction()));
         }
 
         return std::make_shared<NilValue>();

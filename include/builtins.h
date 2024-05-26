@@ -5,12 +5,15 @@
 > Description:   
  ************************************************************************/
 #ifndef __BUILTINS_H__
-#define __BUILTINS_H_
+#define __BUILTINS_H__
 
 #include "../include/value.h"
+#include <unordered_map>
 
 ValuePtr add(const std::vector<ValuePtr>& params);
 
 ValuePtr print(const std::vector<ValuePtr>& params);
+
+extern std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable;
 
 #endif

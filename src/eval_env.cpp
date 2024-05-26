@@ -12,8 +12,9 @@
 using namespace std::literals;
 
 EvalEnv::EvalEnv() : symbolList{}, pairParser{} {
-    symbolList.insert(std::make_pair("+", std::make_shared<BuiltinProcValue>(&add)));
-    symbolList.insert(std::make_pair("print", std::make_shared<BuiltinProcValue>(&print)));
+    for (auto& item : innerSymbolTable) {
+        symbolList.insert(std::make_pair(item.first, std::make_shared<BuiltinProcValue>(item.second)));
+    }
 }
 
 /**
@@ -46,13 +47,18 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
                 return SPECIAL_FORMS[name](v, *this);
             }
             else {
-                throw LispError("Unimpelement");
+                auto proc = eval(v[0]);
+                std::vector<ValuePtr> args = evalList(expr);
+                return apply(proc, args);
             }
             // else {
             //     auto proc = eval(v[0]);
             //     std::vector<ValuePtr> args = evalList(expr);
             //     return apply(proc, args);
             // }
+        }
+        else {
+            throw LispError("Unimplement");
         }
 
         // // 根据列表的首元素执行不同的操作
@@ -83,11 +89,6 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         //         throw LispError("Malformed define.");
         //     }
         // }
-        else {
-            auto proc = eval(v[0]);
-            std::vector<ValuePtr> args = evalList(expr);
-            return apply(proc, args);
-        }
     }
     else if (expr->isSymbol()) {
         // 如果表达式是符号类型，则查找并返回符号对应的值

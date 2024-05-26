@@ -6,20 +6,8 @@
  ************************************************************************/
 
 #include "../include/pair_parser.h"
-#include <iostream>
-
-PairParser::PairParser() : innerTable{} {
-    innerTable.insert("+");
-    innerTable.insert("print");
-}
-
-void PairParser::add(const std::string& s) {
-    innerTable.insert(s);
-}
-
-const std::unordered_set<std::string> PairParser::getSet() const {
-    return innerTable;
-}
+# include <algorithm>
+# include <iterator>
 
 namespace{
     /**
@@ -37,8 +25,7 @@ namespace{
             auto p = std::dynamic_pointer_cast<PairValue>(ptr);
             if (p->getLeft()->isSymbol()) {
                 auto symbolPtr = std::dynamic_pointer_cast<SymbolValue>(p->getLeft());
-                auto set = parser.getSet();
-                if (set.find(symbolPtr->getName()) != set.end()) {
+                if (innerSymbolTable.find(symbolPtr->getName()) != innerSymbolTable.end()) {
                     result.push_back(ptr);
                     return result;
                 }
