@@ -6,6 +6,7 @@
  ************************************************************************/
 #include "../include/eval_env.h"
 #include "../include/error.h"
+#include "../include/forms.h"
 #include <iostream>
 
 using namespace std::literals;
@@ -39,34 +40,49 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         // 解析表达式为向量
         std::vector<ValuePtr> v = pairParser.parse(expr); 
 
-        // 根据列表的首元素执行不同的操作
-        if (v[0]->asSymbol() == "define"s) {
-            // 如果是 define 操作符，则进行定义操作
-            if (auto name = v[1]->asSymbol()) {
-                // 获取定义名称
-                auto first_Name = std::dynamic_pointer_cast<SymbolValue>(v[1])->getName();
-
-                auto second_Value = v[2];
-
-                if (second_Value->isList() && std::dynamic_pointer_cast<PairValue>(second_Value)->getRight()->isNil()) {
-                    symbolList[first_Name] = eval(std::dynamic_pointer_cast<PairValue>(second_Value)->getLeft());
-                }
-                else {
-                    symbolList[first_Name] = eval(second_Value);
-                }
-
-                if(symbolList[first_Name]->getType() == ValueType::BUILTIN_PROC_VALUE) {
-                    pairParser.add(first_Name);
-                }
-
-                // 返回空表表示成功
-                return std::make_shared<NilValue>();
+        if (v[0]->asSymbol()) {
+            auto name = *v[0]->asSymbol();
+            if (SPECIAL_FORMS.find(name) != SPECIAL_FORMS.end()) {
+                return SPECIAL_FORMS[name](v, *this);
             }
             else {
-                // define 操作符形式错误，抛出异常
-                throw LispError("Malformed define.");
+                throw LispError("Unimpelement");
             }
+            // else {
+            //     auto proc = eval(v[0]);
+            //     std::vector<ValuePtr> args = evalList(expr);
+            //     return apply(proc, args);
+            // }
         }
+
+        // // 根据列表的首元素执行不同的操作
+        // if (v[0]->asSymbol() == "define"s) {
+        //     // 如果是 define 操作符，则进行定义操作
+        //     if (auto name = v[1]->asSymbol()) {
+        //         // 获取定义名称
+        //         auto first_Name = std::dynamic_pointer_cast<SymbolValue>(v[1])->getName();
+
+        //         auto second_Value = v[2];
+
+        //         if (second_Value->isList() && std::dynamic_pointer_cast<PairValue>(second_Value)->getRight()->isNil()) {
+        //             symbolList[first_Name] = eval(std::dynamic_pointer_cast<PairValue>(second_Value)->getLeft());
+        //         }
+        //         else {
+        //             symbolList[first_Name] = eval(second_Value);
+        //         }
+
+        //         if(symbolList[first_Name]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+        //             pairParser.add(first_Name);
+        //         }
+
+        //         // 返回空表表示成功
+        //         return std::make_shared<NilValue>();
+        //     }
+        //     else {
+        //         // define 操作符形式错误，抛出异常
+        //         throw LispError("Malformed define.");
+        //     }
+        // }
         else {
             auto proc = eval(v[0]);
             std::vector<ValuePtr> args = evalList(expr);
@@ -81,7 +97,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         if(it == symbolList.end())
             throw LispError("Variable " + name + " not defined.");
         else
-            return ValuePtr(it->second);
+            return it->second;
     }
     else {
         // 其他类型的表达式暂未实现，抛出异常

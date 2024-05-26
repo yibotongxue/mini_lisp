@@ -4,6 +4,9 @@
 > Created Time:  2024/5/22 11:54:49
 > Description:   
  ************************************************************************/
+#ifndef __PAIR_PARSER_H__
+#define __PAIR_PARSER_H__
+
 
 # include "../include/value.h"
 # include <unordered_set>
@@ -22,3 +25,5 @@ public:
 
     std::vector<ValuePtr> parse(ValuePtr ptr);
 };
+
+#endif

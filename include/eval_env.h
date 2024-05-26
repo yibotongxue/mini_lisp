@@ -4,6 +4,9 @@
 > Created Time:  2024/5/17 15:47:39
 > Description:   
  ************************************************************************/
+#ifndef __EVAL_ENV_H__
+#define __EVAL_ENV_H__
+
 
 #include "./value.h"
 #include "./builtins.h"
@@ -18,7 +21,7 @@
  * EvalEnv 类包含一个私有成员 symbolList，用于存储符号和对应的值的映射关系。
  */
 class EvalEnv {
-private:
+public:
     std::unordered_map<std::string, ValuePtr> symbolList; // 用于存储符号和值对应关系的无序映射
     PairParser pairParser;
 
@@ -37,3 +40,5 @@ public:
 
     ValuePtr apply(ValuePtr proc, std::vector<ValuePtr>& args);
 };
+
+#endif

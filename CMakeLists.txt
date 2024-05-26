@@ -12,6 +12,7 @@ set(SOURCES
     src/pair_parser.cpp
     src/parser.cpp
     src/builtins.cpp
+    src/forms.cpp
     src/eval_env.cpp
     src/main.cpp
 )

@@ -4,6 +4,9 @@
 > Created Time:  2024/5/12 10:10:56
 > Description:   lisp的语法分析器 
  ************************************************************************/
+#ifndef __PARSER_H
+#define __PARSER_H
+
 
 #include "../include/token.h"
 #include "../include/tokenizer.h"
@@ -40,3 +43,4 @@ public:
     ValuePtr parseTails();
 };
 
+#endif
