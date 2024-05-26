@@ -9,6 +9,10 @@
 # include <algorithm>
 # include <iterator>
 
+PairParser::PairParser() : needTogetherSet{
+    "define", "qoute", 
+} {}
+
 namespace{
     /**
     * @brief 回溯函数，将 PairValue 对象转换为值指针向量
@@ -19,19 +23,19 @@ namespace{
     * @note 如果给定的值是一个对子（PairValue 对象），则递归地遍历其左右部分。
     *       如果给定的值不是列表，则将其添加到结果向量中。
     */
-    std::vector<ValuePtr> backtracking(PairParser& parser, ValuePtr ptr) {
+    std::vector<ValuePtr> backtracking(ValuePtr ptr) {
         std::vector<ValuePtr> result{};
         if(ptr->isList()) { // 如果值是列表
             auto p = std::dynamic_pointer_cast<PairValue>(ptr);
             if (p->getLeft()->isSymbol()) {
                 auto symbolPtr = std::dynamic_pointer_cast<SymbolValue>(p->getLeft());
-                if (innerSymbolTable.find(symbolPtr->getName()) != innerSymbolTable.end()) {
+                if (innerSymbolTable.find(symbolPtr->getName()) != innerSymbolTable.end() || symbolPtr->getName() == "define" || symbolPtr->getName() == "quote") {
                     result.push_back(ptr);
                     return result;
                 }
             }
-            std::ranges::copy(backtracking(parser, p->getLeft()), std::back_inserter(result)); // 递归处理左侧部分
-            std::ranges::copy(backtracking(parser, p->getRight()), std::back_inserter(result)); // 递归处理右侧部分
+            std::ranges::copy(backtracking(p->getLeft()), std::back_inserter(result)); // 递归处理左侧部分
+            std::ranges::copy(backtracking(p->getRight()), std::back_inserter(result)); // 递归处理右侧部分
         }
         else {
             result.push_back(ptr); // 如果值不是列表，将其添加到结果向量中
@@ -45,8 +49,8 @@ std::vector<ValuePtr> PairParser::parse(ValuePtr ptr) {
     if (notConstPtr->isList()) {
         auto p = std::dynamic_pointer_cast<PairValue>(notConstPtr);
         std::vector<ValuePtr> result{};
-        std::ranges::copy(backtracking(*this, p->getLeft()), std::back_inserter(result));
-        std::ranges::copy(backtracking(*this, p->getRight()), std::back_inserter(result));
+        std::ranges::copy(backtracking(p->getLeft()), std::back_inserter(result));
+        std::ranges::copy(backtracking(p->getRight()), std::back_inserter(result));
         return result;
     }
     else if (notConstPtr->isNil()) {

@@ -13,7 +13,12 @@
 # include <unordered_set>
 
 class PairParser {
+private:
+    std::unordered_set<std::string> needTogetherSet;
+
 public:
+    PairParser();
+
     std::vector<ValuePtr> parse(ValuePtr ptr);
 };
 
