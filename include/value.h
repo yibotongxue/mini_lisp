@@ -128,6 +128,8 @@ public:
     */
     bool isSymbol() const;
 
+    bool isNumber() const;
+
     /**
      * @brief 这个函数用来获取值得符号
      * 
@@ -138,6 +140,8 @@ public:
      * @note 这是一个只读函数，执行时不改变对象的内容
     */
     virtual std::optional<std::string> asSymbol() const;
+
+    virtual std::optional<int> asNumber() const;
 
     virtual std::vector<ValuePtr> toVector() const = 0;
 };
@@ -277,6 +281,8 @@ public:
      * @note 这是从基类继承来的函数，对基类的 toString() 进行了重载，实现了基类的纯虚函数
     */
     virtual std::string toString() const override;
+
+    virtual std::optional<int> asNumber() const override;
 
     virtual std::vector<ValuePtr> toVector() const override;
 };
@@ -588,7 +594,7 @@ private:
     std::vector<ValuePtr> body;
 
 public:
-    LambdaValue(std::vector<std::string>& params, std::vector<ValuePtr>& body) : Value{ValueType::LAMBDA_VALUE}, params{params}, body{body} {}
+    LambdaValue(const std::vector<std::string>& params, const std::vector<ValuePtr>& body) : Value{ValueType::LAMBDA_VALUE}, params{params}, body{body} {}
 
     virtual std::string toString() const override;
 

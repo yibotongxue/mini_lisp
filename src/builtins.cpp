@@ -12,10 +12,12 @@
 ValuePtr add(const std::vector<ValuePtr>& params) {
     double result = 0;
     for (const auto& i :params) {
-        if(i->getType() != ValueType::NUMERIC_VALUE) {
+        if (i->isNumber()) {
+            result += *i->asNumber();
+        }
+        else {
             throw LispError("Cannot add a non-numeric value.");
         }
-        result += std::dynamic_pointer_cast<NumericValue>(i)->getValue();
     }
     return std::make_shared<NumericValue>(result);
 }
@@ -27,7 +29,43 @@ ValuePtr print(const std::vector<ValuePtr>& params) {
     return std::make_shared<NilValue>();
 }
 
+ValuePtr multiply(const std::vector<ValuePtr>& params) {
+    double result = 1;
+    for (const auto& i : params) {
+        if (i->isNumber()) {
+            result *= *i->asNumber();
+        }
+        else {
+            throw LispError("Cannot multiply a non-numeric value.");
+        }
+    }
+    return std::make_shared<NumericValue>(result);
+}
+
+ValuePtr larger(const std::vector<ValuePtr>& params) {
+    if (params.size() < 2) {
+        throw LispError("Less params than needed.");
+    }
+    else {
+        bool result = true;
+        if (!params[0]->isNumber()) {
+            throw LispError("Cannot compare a non-numeric value.");
+        }
+        for (int i = 2; i < params.size() - 1; i++) {
+            if (params[i]->isNumber()) {
+                result = result && *params[i]->asNumber() > *params[i - 1]->asNumber();
+            }
+            else {
+                throw LispError("Cannot compare a non-numeric value.");
+            }
+        }
+        return std::make_shared<BooleanValue>(result);
+    }
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
-    {"print", &print}
+    {"print", &print}, 
+    {"*", &multiply}, 
+    {">", &larger}
 };

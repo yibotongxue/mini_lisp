@@ -60,6 +60,12 @@ bool Value::isSymbol() const {
     return false;
 }
 
+bool Value::isNumber() const {
+    if (type == ValueType::NUMERIC_VALUE) 
+        return true;
+    return false;
+}
+
 /**
  * @brief 将值作为符号返回，这里处理不是符号的情况
  * 
@@ -76,6 +82,14 @@ std::optional<std::string> Value::asSymbol() const {
 */
 std::optional<std::string> SymbolValue::asSymbol() const {
     return { name };
+}
+
+std::optional<int> Value::asNumber() const {
+    return std::nullopt;
+}
+
+std::optional<int> NumericValue::asNumber() const {
+    return { value };
 }
 
 /**
