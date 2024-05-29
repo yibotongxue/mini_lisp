@@ -21,10 +21,13 @@
  */
 class EvalEnv {
 public:
+    std::shared_ptr<EvalEnv> parent;
     std::unordered_map<std::string, ValuePtr> symbolList; // 用于存储符号和值对应关系的无序映射
 
 public:
     EvalEnv();
+
+    EvalEnv(std::shared_ptr<EvalEnv>& ptr);
 
     /**
      * @brief 对给定的表达式进行求值
@@ -37,6 +40,10 @@ public:
     std::vector<ValuePtr> evalList(ValuePtr expr);
 
     ValuePtr apply(ValuePtr proc, std::vector<ValuePtr>& args);
+
+    ValuePtr lookupBinding(std::string& name);
+
+    ValuePtr defineBinding(std::string& name, ValuePtr ptr);
 };
 
 #endif

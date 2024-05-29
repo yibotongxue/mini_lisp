@@ -11,7 +11,13 @@
 
 using namespace std::literals;
 
-EvalEnv::EvalEnv() : symbolList{} {
+EvalEnv::EvalEnv() : symbolList{}, parent{nullptr} {
+    for (auto& item : innerSymbolTable) {
+        symbolList.insert(std::make_pair(item.first, std::make_shared<BuiltinProcValue>(item.second)));
+    }
+}
+
+EvalEnv::EvalEnv(std::shared_ptr<EvalEnv>& ptr) : symbolList{}, parent{ptr} {
     for (auto& item : innerSymbolTable) {
         symbolList.insert(std::make_pair(item.first, std::make_shared<BuiltinProcValue>(item.second)));
     }
@@ -89,11 +95,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         // 如果表达式是符号类型，则查找并返回符号对应的值
 
         auto name = std::dynamic_pointer_cast<SymbolValue>(expr)->getName();
-        auto it = symbolList.find(name);
-        if(it == symbolList.end())
-            throw LispError("Variable " + name + " not defined.");
-        else
-            return it->second;
+        return lookupBinding(name);
     }
     else {
         // 其他类型的表达式暂未实现，抛出异常
@@ -118,4 +120,21 @@ ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr>& args) {
    else {
        throw LispError("Unimplemented");
    }
+}
+
+ValuePtr EvalEnv::lookupBinding(std::string& name) {
+    if (symbolList.find(name) != symbolList.end()) {
+        return symbolList[name];
+    }
+    if (parent) 
+        return parent->lookupBinding(name);
+    else 
+        throw LispError("Variable " + name + " not defined.");
+}
+
+ValuePtr EvalEnv::defineBinding(std::string& name, ValuePtr ptr) {
+    symbolList[name] = ptr;
+    if (parent)
+        return parent->defineBinding(name, ptr);
+    return std::make_shared<NilValue>();
 }

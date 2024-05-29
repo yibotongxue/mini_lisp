@@ -20,13 +20,13 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
         auto second_Value = args[2];
 
         if (second_Value->isList() && std::dynamic_pointer_cast<PairValue>(second_Value)->getRight()->isNil()) {
-            env.symbolList[first_Name] = env.eval(std::dynamic_pointer_cast<PairValue>(second_Value)->getLeft());
+            env.defineBinding(first_Name, env.eval(std::dynamic_pointer_cast<PairValue>(second_Value)->getLeft()));
         }
         else {
-            env.symbolList[first_Name] = env.eval(second_Value);
+            env.defineBinding(first_Name, env.eval(second_Value));
         }
 
-        if (env.symbolList[first_Name]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+        if (env.lookupBinding(first_Name)->getType() == ValueType::BUILTIN_PROC_VALUE) {
             innerSymbolTable.insert(std::make_pair(first_Name, std::dynamic_pointer_cast<BuiltinProcValue>(env.symbolList[first_Name])->getFunction()));
         }
 
