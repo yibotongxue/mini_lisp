@@ -1,4 +1,6 @@
 #include "../include/value.h"
+#include "../include/forms.h"
+#include "../include/builtins.h"
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -182,4 +184,60 @@ std::string PairValue::toString() const {
 
 std::string BuiltinProcValue::toString() const {
     return "#<procedure>";
+}
+
+std::string LambdaValue::toString() const {
+    return "#<procedure>";
+}
+
+std::vector<ValuePtr> BooleanValue::toVector() const {
+    return { std::make_shared<BooleanValue>(*this) };
+}
+
+std::vector<ValuePtr> NumericValue::toVector() const {
+    return { std::make_shared<NumericValue>(*this) };
+}
+
+std::vector<ValuePtr> StringValue::toVector() const {
+    return { std::make_shared<StringValue>(*this) };
+}
+
+std::vector<ValuePtr> NilValue::toVector() const {
+    return {};
+}
+
+std::vector<ValuePtr> SymbolValue::toVector() const {
+    return { std::make_shared<SymbolValue>(*this) };
+}
+
+namespace{
+    void backtracking(std::vector<ValuePtr>& vec, ValuePtr p) {
+        vec.push_back(p);
+        if (p->isList()) {
+            auto pairP = std::dynamic_pointer_cast<PairValue>(p);
+            if (pairP->getLeft()->isSymbol()) {
+                auto symbolP = std::dynamic_pointer_cast<SymbolValue>(pairP->getLeft());
+                if (innerSymbolTable.find(*symbolP->asSymbol()) != innerSymbolTable.end() 
+                    || SPECIAL_FORMS.find(*symbolP->asSymbol()) != SPECIAL_FORMS.end()) {
+                    return;
+                }
+            }
+            backtracking(vec, pairP->getRight());
+        }
+    }
+}
+
+std::vector<ValuePtr> PairValue::toVector() const {
+    std::vector<ValuePtr> result{};
+    result.push_back(left);
+    backtracking(result, right);
+    return result;
+}
+
+std::vector<ValuePtr> BuiltinProcValue::toVector() const {
+    return { std::make_shared<BuiltinProcValue>(*this) };
+}
+
+std::vector<ValuePtr> LambdaValue::toVector() const {
+    return { std::make_shared<LambdaValue>(*this) };
 }

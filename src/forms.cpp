@@ -10,7 +10,7 @@
 #include "../include/builtins.h"
 
 ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
-    if (args.size() == 3) {
+    if (args.size() == 3 && args.back()->isNil()) {
         throw LispError("Nothing found to define " + *args[1]->asSymbol());
     }
     if (auto name = args[1]->asSymbol()) {

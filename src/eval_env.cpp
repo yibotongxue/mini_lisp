@@ -51,11 +51,6 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
                 std::vector<ValuePtr> args = evalList(expr);
                 return apply(proc, args);
             }
-            // else {
-            //     auto proc = eval(v[0]);
-            //     std::vector<ValuePtr> args = evalList(expr);
-            //     return apply(proc, args);
-            // }
         }
         else {
             throw LispError("Unimplement");
@@ -108,9 +103,10 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
 
 std::vector<ValuePtr>EvalEnv::evalList(ValuePtr expr) {
     std::vector<ValuePtr> result;
-    std::vector<ValuePtr> vec = pairParser.parse(expr);
-    for(int i = 1; i < vec.size() - 1; i++) {
-        result.push_back(eval(vec[i]));
+    std::vector<ValuePtr> vec = expr->toVector();
+    for(int i = 1; i < vec.size(); i++) {
+        if (vec[i]->isList())
+            result.push_back(eval(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()));
     }
     return result;
 }

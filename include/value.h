@@ -19,7 +19,8 @@ enum class ValueType {
     NIL_VALUE,      // 空表类型
     SYMBOL_VALUE,   // 符号类型
     PAIR_VALUE,      // 对子类型
-    BUILTIN_PROC_VALUE                // 过程类型
+    BUILTIN_PROC_VALUE,                // 过程类型
+    LAMBDA_VALUE
 };
 
 class Value;   // 值类
@@ -137,6 +138,8 @@ public:
      * @note 这是一个只读函数，执行时不改变对象的内容
     */
     virtual std::optional<std::string> asSymbol() const;
+
+    virtual std::vector<ValuePtr> toVector() const = 0;
 };
 
 /**
@@ -204,6 +207,8 @@ public:
      * @note 这是从基类继承来的函数，对基类的 toString() 进行了重载，实现了基类的纯虚函数
     */
     virtual std::string toString() const override;
+
+    virtual std::vector<ValuePtr> toVector() const override;
 };
 
 /**
@@ -272,6 +277,8 @@ public:
      * @note 这是从基类继承来的函数，对基类的 toString() 进行了重载，实现了基类的纯虚函数
     */
     virtual std::string toString() const override;
+
+    virtual std::vector<ValuePtr> toVector() const override;
 };
 
 /**
@@ -342,6 +349,8 @@ public:
      * @note 这是从基类继承来的函数，对基类的 toString() 进行了重载，实现了基类的纯虚函数
     */
     virtual std::string toString() const override;
+
+    virtual std::vector<ValuePtr> toVector() const override;
 };
 
 /**
@@ -386,6 +395,8 @@ public:
      * @note 这是从基类继承来的函数，对基类的 toString() 进行了重载，实现了基类的纯虚函数
     */
     virtual std::string toString() const override;
+
+    virtual std::vector<ValuePtr> toVector() const override;
 };
 
 /**
@@ -458,6 +469,8 @@ public:
      * @note 这是从基类继承来的函数，对基类的 asSymbol() 进行了重载，实现了基类的虚函数
     */
     virtual std::optional<std::string> asSymbol() const override;
+
+    virtual std::vector<ValuePtr> toVector() const override;
 };
 
 /**
@@ -547,6 +560,8 @@ public:
      * @note 这是从基类继承来的函数，对基类的 toString() 进行了重载，实现了基类的纯虚函数
     */
     virtual std::string toString() const override;
+
+    virtual std::vector<ValuePtr> toVector() const override;
 };
 
 using BuiltinFuncType = ValuePtr(const std::vector<ValuePtr>&);
@@ -563,6 +578,21 @@ public:
     BuiltinFuncType* getFunction() const {
         return func;
     }
+
+    virtual std::vector<ValuePtr> toVector() const override;
+};
+
+class LambdaValue : public Value {
+private:
+    std::vector<std::string> params;
+    std::vector<ValuePtr> body;
+
+public:
+    LambdaValue(std::vector<std::string>& params, std::vector<ValuePtr>& body) : Value{ValueType::LAMBDA_VALUE}, params{params}, body{body} {}
+
+    virtual std::string toString() const override;
+
+    virtual std::vector<ValuePtr> toVector() const override;
 };
 
 #endif  // VALUE_H

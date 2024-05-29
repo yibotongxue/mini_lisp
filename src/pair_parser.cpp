@@ -29,7 +29,7 @@ namespace{
             auto p = std::dynamic_pointer_cast<PairValue>(ptr);
             if (p->getLeft()->isSymbol()) {
                 auto symbolPtr = std::dynamic_pointer_cast<SymbolValue>(p->getLeft());
-                if (innerSymbolTable.find(symbolPtr->getName()) != innerSymbolTable.end() || symbolPtr->getName() == "define" || symbolPtr->getName() == "quote") {
+                if (innerSymbolTable.find(symbolPtr->getName()) != innerSymbolTable.end()) {
                     result.push_back(ptr);
                     return result;
                 }
