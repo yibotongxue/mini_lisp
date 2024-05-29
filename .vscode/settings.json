@@ -65,6 +65,15 @@
         "span": "cpp",
         "unordered_map": "cpp",
         "xhash": "cpp",
-        "unordered_set": "cpp"
+        "unordered_set": "cpp",
+        "*.tcc": "cpp",
+        "cstdarg": "cpp",
+        "cwctype": "cpp",
+        "functional": "cpp",
+        "memory_resource": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "string_view": "cpp",
+        "numbers": "cpp"
     }
 }

@@ -10,7 +10,6 @@
 
 #include "./value.h"
 #include "./builtins.h"
-#include "./pair_parser.h"
 #include <unordered_map>
 #include <algorithm>
 #include <iterator>
@@ -23,7 +22,6 @@
 class EvalEnv {
 public:
     std::unordered_map<std::string, ValuePtr> symbolList; // 用于存储符号和值对应关系的无序映射
-    PairParser pairParser;
 
 public:
     EvalEnv();

@@ -11,7 +11,7 @@
 
 using namespace std::literals;
 
-EvalEnv::EvalEnv() : symbolList{}, pairParser{} {
+EvalEnv::EvalEnv() : symbolList{} {
     for (auto& item : innerSymbolTable) {
         symbolList.insert(std::make_pair(item.first, std::make_shared<BuiltinProcValue>(item.second)));
     }
@@ -39,7 +39,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         // 如果表达式是列表类型，则解析列表并执行相应操作
         
         // 解析表达式为向量
-        std::vector<ValuePtr> v = pairParser.parse(expr); 
+        std::vector<ValuePtr> v = expr->toVector();
 
         if (v[0]->asSymbol()) {
             auto name = *v[0]->asSymbol();

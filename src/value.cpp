@@ -219,7 +219,7 @@ namespace{
                 auto symbolP = std::dynamic_pointer_cast<SymbolValue>(pairP->getLeft());
                 if (innerSymbolTable.find(*symbolP->asSymbol()) != innerSymbolTable.end() 
                     || SPECIAL_FORMS.find(*symbolP->asSymbol()) != SPECIAL_FORMS.end()) {
-                    return;
+                    vec.push_back(std::make_shared<NilValue>());
                 }
             }
             backtracking(vec, pairP->getRight());

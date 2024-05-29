@@ -13,8 +13,8 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (args.size() == 3 && args.back()->isNil()) {
         throw LispError("Nothing found to define " + *args[1]->asSymbol());
     }
-    if (auto name = args[1]->asSymbol()) {
-        auto first_Name = std::dynamic_pointer_cast<SymbolValue>(args[1])->getName();
+    if (auto name = std::dynamic_pointer_cast<PairValue>(args[1])->getLeft()->asSymbol()) {
+        auto first_Name = std::dynamic_pointer_cast<SymbolValue>(std::dynamic_pointer_cast<PairValue>(args[1])->getLeft())->getName();
 
         auto second_Value = args[2];
 
@@ -39,7 +39,7 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
 ValuePtr quoteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (args.size() < 3)
         throw LispError("Nothing to quoted.");
-    return args[1];
+    return std::dynamic_pointer_cast<PairValue>(args[1])->getLeft();
 }
 
 namespace{
@@ -79,30 +79,30 @@ ValuePtr ifForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
     else if (args.size() > 5) {
         throw LispError("More sentence than expected.");
     }
-    auto condiction = args[1];
+    auto condiction = std::dynamic_pointer_cast<PairValue>(args[1])->getLeft();
     if (change_to_bool(condiction, env)) {
-        return env.eval(args[2]);
+        return env.eval(std::dynamic_pointer_cast<PairValue>(args[2])->getLeft());
     }
     else {
-        return env.eval(args[3]);
+        return env.eval(std::dynamic_pointer_cast<PairValue>(args[3])->getLeft());
     }
 }
 
 ValuePtr andForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
     for (int i = 1; i < args.size() - 1; i++) {
-        if (!change_to_bool(args[i], env))
+        if (!change_to_bool(std::dynamic_pointer_cast<PairValue>(args[i])->getLeft(), env))
             return std::make_shared<BooleanValue>(false);
     }
     if (args.size() == 2)
         return std::make_shared<BooleanValue>(true);
     else
-        return args[args.size() - 2];
+        return std::dynamic_pointer_cast<PairValue>(args[args.size() - 2])->getLeft();
 }
 
 ValuePtr orForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
     for (int i = 1; i < args.size() - 1; i++) {
-        if (change_to_bool(args[i], env))
-            return args[i];
+        if (change_to_bool(std::dynamic_pointer_cast<PairValue>(args[i])->getLeft(), env))
+            return std::dynamic_pointer_cast<PairValue>(args[i])->getLeft();
     }
     return std::make_shared<BooleanValue>(false);
 }
