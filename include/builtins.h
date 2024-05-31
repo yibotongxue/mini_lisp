@@ -10,6 +10,6 @@
 #include "../include/value.h"
 #include <unordered_map>
 
-extern std::unordered_map<std::string, BuiltinFunction> innerSymbolTable;
+extern std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable;
 
 #endif

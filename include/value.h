@@ -571,27 +571,25 @@ public:
     virtual std::vector<ValuePtr> toVector() const override;
 };
 
-using BuiltinFuncType = ValuePtr(const std::vector<ValuePtr>&);
+class EvalEnv;
 
-using BuiltinFunction = std::function<ValuePtr(const std::vector<ValuePtr>&)>;
+using BuiltinFuncType = ValuePtr(const std::vector<ValuePtr>&, EvalEnv&);
 
 class BuiltinProcValue : public Value {
 private:
-    BuiltinFunction func;
+    BuiltinFuncType* func;
 
 public:
-    BuiltinProcValue(BuiltinFunction ptr) : Value{ValueType::BUILTIN_PROC_VALUE}, func{ptr} {}
+    BuiltinProcValue(BuiltinFuncType* ptr) : Value{ValueType::BUILTIN_PROC_VALUE}, func{ptr} {}
 
     virtual std::string toString() const override;
 
-    BuiltinFunction getFunction() const {
+    BuiltinFuncType* getFunction() const {
         return func;
     }
 
     virtual std::vector<ValuePtr> toVector() const override;
 };
-
-class EvalEnv;
 
 class LambdaValue : public Value {
 private:

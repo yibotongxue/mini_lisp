@@ -63,16 +63,16 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
             }
             else {
                 auto proc = eval(v[0]);
-                std::vector<ValuePtr> args = evalList(expr);
+                std::vector<ValuePtr> args = evalList(v[1]);
                 return apply(proc, args);
             }
         }
         else if (v[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
-            return std::dynamic_pointer_cast<BuiltinProcValue>(v[0])->getFunction()(evalList(expr));
+            return std::dynamic_pointer_cast<BuiltinProcValue>(v[0])->getFunction()(evalList(v[1]), *this);
         }
         else if (v[0]->getType() == ValueType::LAMBDA_VALUE) {
 
-            return std::dynamic_pointer_cast<LambdaValue>(v[0])->apply(evalList(expr));
+            return std::dynamic_pointer_cast<LambdaValue>(v[0])->apply(evalList(v[1]));
         }
         else if (v[0]->isSelfEvaluating()) {
             throw LispError("Unimplement");
@@ -128,16 +128,27 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
 std::vector<ValuePtr>EvalEnv::evalList(ValuePtr expr) {
     std::vector<ValuePtr> result;
     std::vector<ValuePtr> vec = expr->toVector();
+    if (vec.empty())
+        return {};
+    result.push_back(eval(vec[0]));
     for(int i = 1; i < vec.size(); i++) {
-        if (vec[i]->isList())
+        if (vec[i]->isList()) {
+            auto pairPtr = std::dynamic_pointer_cast<PairValue>(vec[i]);
+            if (pairPtr->getLeft()->isSymbol()) {
+                auto name = *pairPtr->getLeft()->asSymbol();
+            }
             result.push_back(eval(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()));
+        }
+        else if (!vec[i]->isNil()) {
+            result.push_back(eval(vec[i]));
+        }
     }
     return result;
 }
 
 ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr>& args) {
     if (proc->getType() == ValueType::BUILTIN_PROC_VALUE) {
-        return std::dynamic_pointer_cast<BuiltinProcValue>(proc)->getFunction()(args);
+        return std::dynamic_pointer_cast<BuiltinProcValue>(proc)->getFunction()(args, *this);
     }
     else if (proc->getType() == ValueType::LAMBDA_VALUE) {
         return std::dynamic_pointer_cast<LambdaValue>(proc)->apply(args);
