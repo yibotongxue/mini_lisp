@@ -11,6 +11,9 @@
 #include <iostream>
 
 ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    if (args.size() == 2) {
+        throw LispError("Nothing found to define " + *args[1]->asSymbol());
+    }
     if (args.size() == 3 && args.back()->isNil()) {
         throw LispError("Nothing found to define " + *args[1]->asSymbol());
     }

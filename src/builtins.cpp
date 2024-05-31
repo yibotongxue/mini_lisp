@@ -155,9 +155,73 @@ ValuePtr display(const std::vector<ValuePtr>& params, EvalEnv& env) {
         std::cout << std::dynamic_pointer_cast<StringValue>(params[0])->getValue() << std::endl;
     }
     else {
-        std::cout << env.eval(param)->toString() << std::endl;
+        std::cout << "\'" << env.eval(param)->toString();
     }
     return std::make_shared<NilValue>();
+}
+
+ValuePtr displayln(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    display(params, env);
+    std::cout << std::endl;
+    return std::make_shared<NilValue>();
+}
+
+ValuePtr error(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.size() == 0) {
+        throw LispError("error procedure need 1 param.");
+    }
+    else if (params.size() == 1) {
+        auto param = env.eval(params[0]);
+        if (param->getType() == ValueType::STRING_VALUE) {
+            throw LispError(std::dynamic_pointer_cast<StringValue>(param)->getValue());
+        }
+        else {
+            throw LispError("error procedure need string type param");
+        }
+    }
+    else {
+        throw LispError("More params than needed in error procedure.");
+    }
+}
+
+ValuePtr eval(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.size() == 0) {
+        throw LispError("procedure eval need 1 param, given 0.");
+    }
+    else if (params.size() == 1) {
+        return env.eval(params[0]);
+    }
+    else {
+        throw LispError("procedure eval cannot receive more than 1 params.");
+    }
+}
+
+ValuePtr _exit(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.size() == 0) {
+        std::exit(0);
+    }
+    else if (params.size() == 1) {
+        auto param = env.eval(params[0]);
+        if (param->isNumber()) {
+            std::exit(*param->asNumber());
+        }
+        else {
+            throw LispError("params need to be a numeric value.");
+        }
+    }
+    else {
+        throw LispError("params are more than needed.");
+    }
+}
+
+ValuePtr newline(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.empty()) {
+        std::cout << std::endl;
+        return std::make_shared<NilValue>();
+    }
+    else {
+        throw LispError("The procedure should not have params.");
+    }
 }
 
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
@@ -167,5 +231,9 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {">", &larger}, 
     {"-", &reduce}, 
     {"apply", &apply}, 
-    {"display", &display}
+    {"display", &display}, 
+    {"displayln", &displayln}, 
+    {"error", &error}, 
+    {"exit", &_exit}, 
+    {"newline", &newline}
 };
