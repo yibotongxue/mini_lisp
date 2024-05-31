@@ -5,6 +5,7 @@
 #include <vector>
 #include <optional>
 #include <memory>
+#include <functional>
 
 
 /**
@@ -572,16 +573,18 @@ public:
 
 using BuiltinFuncType = ValuePtr(const std::vector<ValuePtr>&);
 
+using BuiltinFunction = std::function<ValuePtr(const std::vector<ValuePtr>&)>;
+
 class BuiltinProcValue : public Value {
 private:
-    BuiltinFuncType* func;
+    BuiltinFunction func;
 
 public:
-    BuiltinProcValue(BuiltinFuncType* ptr) : Value{ValueType::BUILTIN_PROC_VALUE}, func{ptr} {}
+    BuiltinProcValue(BuiltinFunction ptr) : Value{ValueType::BUILTIN_PROC_VALUE}, func{ptr} {}
 
     virtual std::string toString() const override;
 
-    BuiltinFuncType* getFunction() const {
+    BuiltinFunction getFunction() const {
         return func;
     }
 

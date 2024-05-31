@@ -94,10 +94,10 @@ ValuePtr reduce(const std::vector<ValuePtr>& params) {
     }
 }
 
-std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
-    {"+", &add},
-    {"print", &print}, 
-    {"*", &multiply}, 
-    {">", &larger}, 
-    {"-", &reduce}
+std::unordered_map<std::string, BuiltinFunction> innerSymbolTable{
+    {"+", add},
+    {"print", print}, 
+    {"*", multiply}, 
+    {">", larger}, 
+    {"-", reduce}
 };
