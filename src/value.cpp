@@ -41,6 +41,17 @@ bool Value::isSelfEvaluating() const {
     return false;
 }
 
+namespace{
+    Value* getRightOne(Value* ptr) {
+        if (ptr->getType() != ValueType::PAIR_VALUE) {
+            return ptr;
+        }
+        else {
+            return getRightOne(dynamic_cast<PairValue*>(ptr)->getRight().get());
+        }
+    }
+}
+
 /**
  * @brief 判断值是否为对子类型的函数
  * 
@@ -49,7 +60,7 @@ bool Value::isSelfEvaluating() const {
  * @note 这是一个只读函数，不会改变对象的内容。
 */
 bool Value::isList() const {
-    if(type == ValueType::PAIR_VALUE)
+    if(getRightOne(const_cast<Value*>(this))->getType() == ValueType::NIL_VALUE && !isNil())
         return true;
     return false;
 }

@@ -224,6 +224,180 @@ ValuePtr newline(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+ValuePtr atom(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The atom? procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->getType() == ValueType::BOOLEAN_VALUE ||
+            params[0]->getType() == ValueType::NUMERIC_VALUE ||
+            params[0]->getType() == ValueType::STRING_VALUE ||
+            params[0]->getType() == ValueType::SYMBOL_VALUE ||
+            params[0]->getType() == ValueType::NIL_VALUE) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        else {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    else {
+        throw LispError("The atom? procedure need only 1 params.");
+    }
+}
+
+ValuePtr boolean(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The boolean? procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->getType() == ValueType::BOOLEAN_VALUE) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        else {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    else {
+        throw LispError("The boolean? procedure need only 1 params.");
+    }
+}
+
+ValuePtr integer(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The integer? procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->isNumber() && static_cast<int>(*params[0]->asNumber()) == *params[0]->asNumber()) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        else {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    else {
+        throw LispError("The integer? procedure need only 1 params.");
+    }
+}
+
+ValuePtr list(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The list? procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->isList() || params[0]->isNil()) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        else {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    else {
+        throw LispError("The list? procedure need only 1 params.");
+    }
+}
+
+ValuePtr number(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The number? procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->isNumber()) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        else {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    else {
+        throw LispError("The number? procedure need only 1 params.");
+    }
+}
+
+ValuePtr null(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The null? procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->isNil()) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        else {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    else {
+        throw LispError("The null? procedure need only 1 params.");
+    }
+}
+
+ValuePtr _pair(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The pair? procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->getType() == ValueType::PAIR_VALUE && !params[0]->isList()) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        else {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    else {
+        throw LispError("The pair? procedure need only 1 params.");
+    }
+}
+
+ValuePtr isProcedure(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("THe procedure? procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE || params[0]->getType() == ValueType::LAMBDA_VALUE) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        else {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    else {
+        throw LispError("The procedure? procedure need only 1 params.");
+    }
+}
+
+ValuePtr isString(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The string? procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->getType() == ValueType::STRING_VALUE) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        else {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    else {
+        throw LispError("The string? procedure need only 1 params.");
+    }
+}
+
+ValuePtr isSymbol(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The symbol? procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->isSymbol()) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        else {
+            return std::make_shared<BooleanValue>(false);
+        }
+    }
+    else {
+        throw LispError("The symbol? procedure need only 1 params.");
+    }
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"print", &print}, 
@@ -235,5 +409,15 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"displayln", &displayln}, 
     {"error", &error}, 
     {"exit", &_exit}, 
-    {"newline", &newline}
+    {"newline", &newline}, 
+    {"atom?", &atom}, 
+    {"boolean?", &boolean}, 
+    {"integer?", &integer}, 
+    {"list?", &list}, 
+    {"number?", &number}, 
+    {"null?", &null}, 
+    {"pair?", &_pair}, 
+    {"procedure?", &isProcedure}, 
+    {"string?", &isString}, 
+    {"symbol?", &isSymbol}
 };
