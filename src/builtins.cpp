@@ -143,11 +143,28 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+ValuePtr display(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.empty()) {
+        throw LispError("Need a param.");
+    }
+    if (params.size() > 1) {
+        throw LispError("Params should be only 1.");
+    }
+    if (params[0]->getType() == ValueType::STRING_VALUE) {
+        std::cout << std::dynamic_pointer_cast<StringValue>(params[0])->getValue() << std::endl;
+    }
+    else {
+        std::cout << env.eval(params[0])->toString() << std::endl;
+    }
+    return std::make_shared<NilValue>();
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"print", &print}, 
     {"*", &multiply}, 
     {">", &larger}, 
     {"-", &reduce}, 
-    {"apply", &apply}
+    {"apply", &apply}, 
+    {"display", &display}
 };

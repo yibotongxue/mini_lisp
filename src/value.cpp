@@ -34,7 +34,9 @@ bool Value::isNil() const {
 bool Value::isSelfEvaluating() const {
     if(type == ValueType::BOOLEAN_VALUE ||
        type == ValueType::NUMERIC_VALUE ||
-       type == ValueType::STRING_VALUE)
+       type == ValueType::STRING_VALUE ||
+       type == ValueType::BUILTIN_PROC_VALUE || 
+       type == ValueType::LAMBDA_VALUE)
         return true;
     return false;
 }
