@@ -150,11 +150,12 @@ ValuePtr display(const std::vector<ValuePtr>& params, EvalEnv& env) {
     if (params.size() > 1) {
         throw LispError("Params should be only 1.");
     }
-    if (params[0]->getType() == ValueType::STRING_VALUE) {
+    auto param = env.eval(params[0]);
+    if (param->getType() == ValueType::STRING_VALUE) {
         std::cout << std::dynamic_pointer_cast<StringValue>(params[0])->getValue() << std::endl;
     }
     else {
-        std::cout << env.eval(params[0])->toString() << std::endl;
+        std::cout << env.eval(param)->toString() << std::endl;
     }
     return std::make_shared<NilValue>();
 }
