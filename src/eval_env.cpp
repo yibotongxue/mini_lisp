@@ -23,6 +23,15 @@ EvalEnv::EvalEnv(std::shared_ptr<EvalEnv>& ptr) : symbolList{}, parent{ptr} {
     }
 }
 
+std::shared_ptr<EvalEnv> EvalEnv::createEvalEnv() {
+    return std::make_shared<EvalEnv>(std::move(EvalEnv()));
+}
+
+std::shared_ptr<EvalEnv> EvalEnv::createEvalEnv(std::shared_ptr<EvalEnv>& ptr)  {
+    EvalEnv env(ptr);
+    return std::make_shared<EvalEnv>(std::move(EvalEnv(ptr)));
+}
+
 /**
  * @brief 对给定的表达式进行求值
  * 
@@ -58,9 +67,22 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
                 return apply(proc, args);
             }
         }
-        else {
+        else if (v[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+            return std::dynamic_pointer_cast<BuiltinProcValue>(v[0])->getFunction()(evalList(expr));
+        }
+        else if (v[0]->getType() == ValueType::LAMBDA_VALUE) {
+
+            return std::dynamic_pointer_cast<LambdaValue>(v[0])->apply(evalList(expr));
+        }
+        else if (v[0]->isSelfEvaluating()) {
             throw LispError("Unimplement");
         }
+        else {
+            return eval(std::make_shared<PairValue>(eval(v[0]), std::dynamic_pointer_cast<PairValue>(expr)->getRight()));
+        }
+        // else {
+        //     throw LispError("Unimplement");
+        // }
 
         // // 根据列表的首元素执行不同的操作
         // if (v[0]->asSymbol() == "define"s) {
@@ -99,7 +121,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
     }
     else {
         // 其他类型的表达式暂未实现，抛出异常
-        throw LispError("Unimplemented");
+        throw LispError("Unimplemented expression");
     }
 }
 
@@ -114,15 +136,18 @@ std::vector<ValuePtr>EvalEnv::evalList(ValuePtr expr) {
 }
 
 ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr>& args) {
-   if (proc->getType() == ValueType::BUILTIN_PROC_VALUE) {
-       return std::dynamic_pointer_cast<BuiltinProcValue>(proc)->getFunction()(args);
-   }
-   else {
-       throw LispError("Unimplemented");
-   }
+    if (proc->getType() == ValueType::BUILTIN_PROC_VALUE) {
+        return std::dynamic_pointer_cast<BuiltinProcValue>(proc)->getFunction()(args);
+    }
+    else if (proc->getType() == ValueType::LAMBDA_VALUE) {
+        return std::dynamic_pointer_cast<LambdaValue>(proc)->apply(args);
+    }
+    else {
+        throw LispError("Unimplemented");
+    }
 }
 
-ValuePtr EvalEnv::lookupBinding(std::string& name) {
+ValuePtr EvalEnv::lookupBinding(const std::string& name) {
     if (symbolList.find(name) != symbolList.end()) {
         return symbolList[name];
     }
@@ -132,9 +157,24 @@ ValuePtr EvalEnv::lookupBinding(std::string& name) {
         throw LispError("Variable " + name + " not defined.");
 }
 
-ValuePtr EvalEnv::defineBinding(std::string& name, ValuePtr ptr) {
+ValuePtr EvalEnv::defineBinding(const std::string& name, ValuePtr ptr) {
     symbolList[name] = ptr;
     if (parent)
         return parent->defineBinding(name, ptr);
     return std::make_shared<NilValue>();
+}
+
+std::shared_ptr<EvalEnv> EvalEnv::createChild(const std::vector<std::string>& params, const std::vector<ValuePtr>& args) {
+    auto env = EvalEnv::createEvalEnv();
+    if (params.size() < args.size()) {
+        throw LispError("The params are more than needed.");
+    }
+    else if (params.size() > args.size()) {
+        throw LispError("The params are less than needed.");
+    }
+    for (int i = 0; i < params.size(); i++) {
+        env->symbolList[params[i]] = eval(args[i]);
+    }
+    env->parent = std::make_shared<EvalEnv>(*this);
+    return env;
 }

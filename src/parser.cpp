@@ -94,6 +94,9 @@ ValuePtr Parser::parse() {
  * @throws SyntaxError 当遇到无法匹配的括号或者 tokens 已经遍历完时抛出异常
  */
 ValuePtr Parser::parseTails() {
+    if (tokens.empty()) {
+        throw SyntaxError("Unmatched parens");
+    }
     try{
         if(tokens.front()->getType() == TokenType::RIGHT_PAREN) { // 如果下一个词法标记是右括号
             tokens.pop_front(); // 移除右括号
@@ -104,10 +107,13 @@ ValuePtr Parser::parseTails() {
         throw SyntaxError("eof"); // 入股 tokens 一场为空，则抛出 eof 异常
     }
     auto car = this->parse(); // 解析当前位置的值作为对子的左侧
+    if (tokens.empty()) {
+        throw SyntaxError("Unmatched parens");
+    }
     if(tokens.front()->getType() == TokenType::DOT) { // 如果下一个词法标记是点号
         tokens.pop_front(); // 移除点号
         auto cdr = this->parse(); // 解析点号后的值作为对子的右侧
-        if(tokens.front()->getType() != TokenType::RIGHT_PAREN) { // 如果点号后的词法标记不是右括号
+        if(tokens.empty() || tokens.front()->getType() != TokenType::RIGHT_PAREN) { // 如果点号后的词法标记不是右括号
             throw SyntaxError("Unmatched parens"); // 抛出无法匹配的括号异常
         }
         tokens.pop_front(); // 移除右括号

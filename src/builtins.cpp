@@ -51,9 +51,9 @@ ValuePtr larger(const std::vector<ValuePtr>& params) {
         if (!params[0]->isNumber()) {
             throw LispError("Cannot compare a non-numeric value.");
         }
-        for (int i = 2; i < params.size() - 1; i++) {
+        for (int i = 1; i < params.size(); i++) {
             if (params[i]->isNumber()) {
-                result = result && *params[i]->asNumber() > *params[i - 1]->asNumber();
+                result = result && *params[i]->asNumber() < *params[i - 1]->asNumber();
             }
             else {
                 throw LispError("Cannot compare a non-numeric value.");
@@ -63,9 +63,41 @@ ValuePtr larger(const std::vector<ValuePtr>& params) {
     }
 }
 
+ValuePtr reduce(const std::vector<ValuePtr>& params) {
+    if (params.size() == 0) {
+        throw LispError("Less params than needed.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->isNumber()) {
+            return std::make_shared<NumericValue>(-*params[0]->asNumber());
+        }
+        else {
+            throw LispError("Cannot reduce a non-numeric value.");
+        }
+    }
+    else {
+        if (params[0]->isNumber()) {
+            double result = *params[0]->asNumber();
+            for (int i = 1; i < params.size(); i++) {
+                if (params[i]->isNumber()) {
+                    result -= *params[i]->asNumber();
+                }
+                else {
+                    throw LispError("Cannot reduce a non-numeric value.");
+                }
+            }
+            return std::make_shared<NumericValue>(result);
+        }
+        else {
+            throw LispError("Cannot reduce a non-numeric value.");
+        }
+    }
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"print", &print}, 
     {"*", &multiply}, 
-    {">", &larger}
+    {">", &larger}, 
+    {"-", &reduce}
 };

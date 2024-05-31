@@ -27,7 +27,7 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
         }
 
         if (env.lookupBinding(first_Name)->getType() == ValueType::BUILTIN_PROC_VALUE) {
-            innerSymbolTable.insert(std::make_pair(first_Name, std::dynamic_pointer_cast<BuiltinProcValue>(env.symbolList[first_Name])->getFunction()));
+            innerSymbolTable.insert(std::make_pair(first_Name, std::dynamic_pointer_cast<BuiltinProcValue>(env.eval(std::make_shared<SymbolValue>(first_Name)))->getFunction()));
         }
 
         return std::make_shared<NilValue>();
@@ -37,15 +37,24 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
         auto functionName_params = Pairptr->getLeft();
         if (functionName_params->isList()) {
             auto functionName = std::dynamic_pointer_cast<PairValue>(functionName_params)->getLeft();
-            std::vector<std::string> params{};
+            std::vector<std::string> params{};\
             if (functionName->isSymbol()) {
-                for (auto& param : std::dynamic_pointer_cast<PairValue>(functionName_params)->getRight()->toVector()) {
-                    if (param->isSymbol()) {
-                        params.push_back(*param->asSymbol());
+                auto paramPtrs = functionName_params->toVector();
+                for (int i = 1; i < paramPtrs.size() - 1; i++) {
+                    if (paramPtrs[i]->isList()) {
+                        auto param = std::dynamic_pointer_cast<PairValue>(paramPtrs[i])->getLeft();
+                        if (param->isSymbol()) {
+                            params.push_back(*param->asSymbol());
+                        }
                     }
                 }
-                auto functionBody = std::dynamic_pointer_cast<PairValue>(args[2])->getLeft()->toVector();
-                env.symbolList[*functionName->asSymbol()] = std::make_shared<LambdaValue>(params, functionBody);
+                auto functionBodyPtr = Pairptr->toVector();
+                std::vector<ValuePtr> functionBody{};
+                for (int i = 1; i < functionBodyPtr.size() - 1; i++) {
+                    functionBody.push_back(std::dynamic_pointer_cast<PairValue>(functionBodyPtr[i])->getLeft());
+                }
+                env.defineBinding(*functionName->asSymbol(), std::make_shared<LambdaValue>(params, functionBody, env.shared_from_this()));
+                // env.symbolList[*functionName->asSymbol()] = std::make_shared<LambdaValue>(params, functionBody);
                 return std::make_shared<NilValue>();
             }
             else {
@@ -99,10 +108,26 @@ ValuePtr ifForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
         throw LispError("No conditional statements are defined");
     }
     else if (args.size() == 3) {
-        throw LispError("There is no true branch defined");
+        auto temp = args[1];
+        std::vector<ValuePtr> new_args{args};
+        new_args.pop_back();
+        new_args.push_back(std::dynamic_pointer_cast<PairValue>(temp)->getRight());
+        if (new_args.back()->isNil()) {
+            throw LispError("There is no true branch defined");
+        }
+        new_args.push_back(std::make_shared<NilValue>());
+        return ifForm(new_args, env);
     }
     else if (args.size() == 4) {
-        throw LispError("There is no false branch defined");
+        auto temp = args[2];
+        std::vector<ValuePtr> new_args{args};
+        new_args.pop_back();
+        new_args.push_back(std::dynamic_pointer_cast<PairValue>(temp)->getRight());
+        if (new_args.back()->isNil()) {
+            throw LispError("There is no false branch defined");
+        }
+        new_args.push_back(std::make_shared<NilValue>());
+        return ifForm(new_args, env);
     }
     else if (args.size() > 5) {
         throw LispError("More sentence than expected.");
@@ -142,9 +167,6 @@ ValuePtr lambdaForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
     else if (args.size() == 3) {
         throw LispError("The name of the process body is missing.");
     }
-    else if (args.size() > 4) {
-        throw LispError("More params than the form could receive.");
-    }
     else {
         auto paramsPtr = std::dynamic_pointer_cast<PairValue>(args[1])->getLeft()->toVector();
         std::vector<std::string> params{};
@@ -158,8 +180,16 @@ ValuePtr lambdaForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
                     throw LispError("Not symbol in params.");
                 }
             }
+            else if (param->isSymbol()) {
+                params.push_back(*param->asSymbol());
+            }
         }
-        return std::make_shared<LambdaValue>(params, std::move(std::dynamic_pointer_cast<PairValue>(args[1])->getRight()->toVector()));
+        auto bodyPtr = args[1]->toVector();
+        std::vector<ValuePtr> body{};
+        for (int i = 1; i < bodyPtr.size() - 1; i++) {
+            body.push_back(std::dynamic_pointer_cast<PairValue>(bodyPtr[i])->getLeft());
+        }
+        return std::make_shared<LambdaValue>(params, body, env.shared_from_this());
     }
 }
 

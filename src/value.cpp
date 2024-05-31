@@ -1,10 +1,15 @@
 #include "../include/value.h"
 #include "../include/forms.h"
 #include "../include/builtins.h"
+#include "../include/error.h"
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <typeinfo>
+#include <eval_env.h>
+
+LambdaValue::LambdaValue(const std::vector<std::string>& params, const std::vector<ValuePtr>& body, std::shared_ptr<EvalEnv> env)
+    : Value{ValueType::LAMBDA_VALUE}, params{params}, body{body}, parent{env} {}
 
 /**
  * @brief 判断值是否为空表类型的函数
@@ -84,11 +89,11 @@ std::optional<std::string> SymbolValue::asSymbol() const {
     return { name };
 }
 
-std::optional<int> Value::asNumber() const {
+std::optional<double> Value::asNumber() const {
     return std::nullopt;
 }
 
-std::optional<int> NumericValue::asNumber() const {
+std::optional<double> NumericValue::asNumber() const {
     return { value };
 }
 
@@ -233,7 +238,7 @@ namespace{
                 auto symbolP = std::dynamic_pointer_cast<SymbolValue>(pairP->getLeft());
                 if (innerSymbolTable.find(*symbolP->asSymbol()) != innerSymbolTable.end() 
                     || SPECIAL_FORMS.find(*symbolP->asSymbol()) != SPECIAL_FORMS.end()) {
-                    vec.push_back(std::make_shared<NilValue>());
+                        return;
                 }
             }
             backtracking(vec, pairP->getRight());
@@ -245,6 +250,9 @@ std::vector<ValuePtr> PairValue::toVector() const {
     std::vector<ValuePtr> result{};
     result.push_back(left);
     backtracking(result, right);
+    if (!result.back()->isNil()) {
+        result.push_back(std::make_shared<NilValue>());
+    }
     return result;
 }
 
@@ -254,4 +262,15 @@ std::vector<ValuePtr> BuiltinProcValue::toVector() const {
 
 std::vector<ValuePtr> LambdaValue::toVector() const {
     return { std::make_shared<LambdaValue>(*this) };
+}
+
+ValuePtr LambdaValue::apply(const std::vector<ValuePtr>& args) {
+    auto env = parent->createChild(params, args);
+    if (body.empty()) {
+        return std::make_shared<NilValue>();
+    }
+    for (int i = 0; i < body.size() - 1; i++) {
+        env->eval(body[i]);
+    }
+    return env->eval(body.back());
 }

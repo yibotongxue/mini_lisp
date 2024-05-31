@@ -19,15 +19,19 @@
  * 
  * EvalEnv 类包含一个私有成员 symbolList，用于存储符号和对应的值的映射关系。
  */
-class EvalEnv {
-public:
+class EvalEnv : public std::enable_shared_from_this<EvalEnv> {
+private:
     std::shared_ptr<EvalEnv> parent;
     std::unordered_map<std::string, ValuePtr> symbolList; // 用于存储符号和值对应关系的无序映射
-
-public:
+    
     EvalEnv();
 
     EvalEnv(std::shared_ptr<EvalEnv>& ptr);
+
+public:
+    static std::shared_ptr<EvalEnv> createEvalEnv();
+
+    static std::shared_ptr<EvalEnv> createEvalEnv(std::shared_ptr<EvalEnv>& ptr);
 
     /**
      * @brief 对给定的表达式进行求值
@@ -41,9 +45,11 @@ public:
 
     ValuePtr apply(ValuePtr proc, std::vector<ValuePtr>& args);
 
-    ValuePtr lookupBinding(std::string& name);
+    ValuePtr lookupBinding(const std::string& name);
 
-    ValuePtr defineBinding(std::string& name, ValuePtr ptr);
+    ValuePtr defineBinding(const std::string& name, ValuePtr ptr);
+
+    std::shared_ptr<EvalEnv> createChild(const std::vector<std::string>& params, const std::vector<ValuePtr>& args);
 };
 
 #endif

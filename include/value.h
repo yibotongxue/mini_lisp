@@ -141,7 +141,7 @@ public:
     */
     virtual std::optional<std::string> asSymbol() const;
 
-    virtual std::optional<int> asNumber() const;
+    virtual std::optional<double> asNumber() const;
 
     virtual std::vector<ValuePtr> toVector() const = 0;
 };
@@ -282,7 +282,7 @@ public:
     */
     virtual std::string toString() const override;
 
-    virtual std::optional<int> asNumber() const override;
+    virtual std::optional<double> asNumber() const override;
 
     virtual std::vector<ValuePtr> toVector() const override;
 };
@@ -588,17 +588,22 @@ public:
     virtual std::vector<ValuePtr> toVector() const override;
 };
 
+class EvalEnv;
+
 class LambdaValue : public Value {
 private:
     std::vector<std::string> params;
     std::vector<ValuePtr> body;
+    std::shared_ptr<EvalEnv> parent;
 
 public:
-    LambdaValue(const std::vector<std::string>& params, const std::vector<ValuePtr>& body) : Value{ValueType::LAMBDA_VALUE}, params{params}, body{body} {}
+    LambdaValue(const std::vector<std::string>& params, const std::vector<ValuePtr>& body, std::shared_ptr<EvalEnv> env);
 
     virtual std::string toString() const override;
 
     virtual std::vector<ValuePtr> toVector() const override;
+
+    ValuePtr apply(const std::vector<ValuePtr>& args);
 };
 
 #endif  // VALUE_H
