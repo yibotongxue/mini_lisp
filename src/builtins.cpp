@@ -672,6 +672,55 @@ ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+ValuePtr _reduce(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.size() == 0) {
+        throw LispError("The reduce procedure need 2 params, given 0.");
+    }
+    else if (params.size() == 1) {
+        throw LispError("The reduce procedure need 2 params, given 1.");
+    }
+    else if (params.size() == 2) {
+        if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+            if (params[1]->isList()) {
+                if (std::dynamic_pointer_cast<NumericValue>(length({params[1]}, env))->getValue() == 1) {
+                    return car({params[1]}, env);
+                }
+                else {
+                    return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({car({params[1]}, env), _reduce({params[0], cdr({params[1]}, env)}, env)}, env);
+                }
+            }
+            else if (params[1]->isNil()) {
+                throw LispError("The reduce procedure cannot receive a null list as the second param.");
+            }
+            else {
+                throw LispError("The reduce procedure need a list param as the second param.");
+            }
+        }
+        else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
+            if (params[1]->isList()) {
+                if (std::dynamic_pointer_cast<NumericValue>(length({params[1]}, env))->getValue() == 1) {
+                    return car({params[1]}, env);
+                }
+                else {
+                    return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({car({params[1]}, env), _reduce({params[0], cdr({params[1]}, env)}, env)});
+                }
+            }
+            else if (params[1]->isNil()) {
+                throw LispError("The reduce procedure cannot receive a null list as the second param.");
+            }
+            else {
+                throw LispError("The reduce procedure need a list param as the second param.");
+            }
+        }
+        else {
+            throw LispError("The reduce procedure need a procedure param as the first param.");
+        }
+    }
+    else {
+        throw LispError("The reduce procedure need only 2 params.");
+    }
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"print", &print}, 
@@ -701,5 +750,6 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"length", &length}, 
     {"list", &_list}, 
     {"map", &_map}, 
-    {"filter", &filter}
+    {"filter", &filter}, 
+    {"reduce", &_reduce}
 };
