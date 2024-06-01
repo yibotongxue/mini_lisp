@@ -50,7 +50,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         // 禁止对空表进行评估，抛出异常
         throw LispError("Evaluating nil is prohibited.");
     }
-    else if (expr->isList()) {
+    else if (expr->isList() && !expr->isNil()) {
         // 如果表达式是列表类型，则解析列表并执行相应操作
         
         // 解析表达式为向量

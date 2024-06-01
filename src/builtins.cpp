@@ -398,6 +398,64 @@ ValuePtr isSymbol(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+namespace{
+    ValuePtr makeList(std::vector<ValuePtr>& vec, int start) {
+        if (vec.size() == 0) {
+            return std::make_shared<NilValue>();
+        }
+        else if(vec.size() == 1) {
+            return vec[0];
+        }
+        if (start == vec.size() - 2) {
+            return std::make_shared<PairValue>(vec[start], vec[start + 1]);
+        }
+        else {
+            return std::make_shared<PairValue>(vec[start], makeList(vec, start + 1));
+        }
+    }
+}
+
+ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        return std::make_shared<NilValue>();
+    }
+    else if (params.size() == 1) {
+        return params[0];
+    }
+    else {
+        std::vector<ValuePtr> result{};
+        for (int i = 0; i < params.size() - 1; i++) {
+            if (params[i]->isList()) {
+               auto vec = params[i]->toVector();
+               if (vec.size() > 0) {
+                   result.push_back(vec[0]);
+               }
+               for (int j = 1; j < vec.size(); j++) {
+                   if (vec[j]->getType() == ValueType::PAIR_VALUE) {
+                       result.push_back(std::dynamic_pointer_cast<PairValue>(vec[j])->getLeft());
+                   }
+               }
+            }
+            else {
+                throw LispError("The append procedure need a list param.");
+            }
+        }
+        if (params.back()->isNil()) {
+            result.push_back(params.back());
+        }
+        auto vec = params.back()->toVector();
+        for (auto& ptr : vec) {
+            if (ptr->getType() == ValueType::PAIR_VALUE) {
+                result.push_back(std::dynamic_pointer_cast<PairValue>(ptr)->getLeft());
+            }
+            else {
+                result.push_back(ptr);
+            }
+        }
+        return makeList(result, 0);
+    }
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"print", &print}, 
@@ -419,5 +477,6 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"pair?", &_pair}, 
     {"procedure?", &isProcedure}, 
     {"string?", &isString}, 
-    {"symbol?", &isSymbol}
+    {"symbol?", &isSymbol}, 
+    {"append", &append}
 };
