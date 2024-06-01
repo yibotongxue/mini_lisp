@@ -722,7 +722,7 @@ ValuePtr _reduce(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
-ValuePtr divide(const std::vector<ValuePtr>& params, EvalEnv& env) {
+ValuePtr divide(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The / procedure need at least 1 param, given 0.");
     }
@@ -754,7 +754,7 @@ ValuePtr divide(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
-ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv& env) {
+ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The abs procedure need 1 params.");
     }
@@ -771,7 +771,7 @@ ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
-ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv& env) {
+ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The expt procedure need 2 params, given 0.");
     }
@@ -795,6 +795,94 @@ ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+ValuePtr quotient(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The quotient procedure need 2 params, given 0.");
+    }
+    else if (params.size() == 1) {
+        throw LispError("The quotient procedure need 2 params, given 1.");
+    }
+    else if (params.size() == 2) {
+        if (!params[0]->isNumber()) {
+            throw LispError("The quotient procedure cannot receive a non-numeric value.");
+        }
+        else if (!params[0]->isNumber()) {
+            throw LispError("The quotient procedure cannot receive a non-numeric value.");
+        }
+        double x = *params[0]->asNumber();
+        double y = *params[1]->asNumber();
+        if (y == 0) {
+            throw LispError("Divide by zero.");
+        }
+        double result = x / y;
+        if (static_cast<int>(result) == result) 
+            return std::make_shared<NumericValue>(result);
+        else 
+            return std::make_shared<NumericValue>(static_cast<int>(result));
+    }
+    else {
+        throw LispError("The quotient procedure need only 2 params.");
+    }
+}
+
+ValuePtr modulo(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The modulo procedure need 2 params, given 0.");
+    }
+    else if (params.size() == 1) {
+        throw LispError("The modulo procedure need 2 params, given 1.");
+    }
+    else if (params.size() == 2) {
+        if (!params[0]->isNumber() || !params[1]->isNumber()) {
+            throw LispError("The modulo procedure cannot receive a non-numeric value.");
+        }
+        double x = *params[0]->asNumber();
+        double y = *params[1]->asNumber();
+        if (static_cast<int>(x) != x || static_cast<int>(y) != y) {
+            throw LispError("The modulo procedure should receive integers, given not-integers.");
+        }
+        if (y == 0) {
+            throw LispError("Divide by zero.");
+        }
+        int a = static_cast<int>(x);
+        int b = static_cast<int>(y);
+        int result = a % b;
+        if (result * b < 0) 
+            result += b;
+        return std::make_shared<NumericValue>(result);
+    }
+    else {
+        throw LispError("The modulo procedure need only 2 params.");
+    }
+}
+
+ValuePtr remainder(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The remainder procedure need 2 params, given 0.");
+    }
+    else if (params.size() == 1) {
+        throw LispError("The remainder procedure need 2 params, given 1.");
+    }
+    else if (params.size() == 2) {
+        if (!params[0]->isNumber() || !params[1]->isNumber()) {
+            throw LispError("THe remainder procedure cannot receive a non-numeric value.");
+        }
+        double x = *params[0]->asNumber();
+        double y = *params[1]->asNumber();
+        if (static_cast<int>(x) != x || static_cast<int>(y) != y) {
+            throw LispError("The remainder procedure should receive integers, given not-integers.");
+        }
+        if (y == 0) {
+            throw LispError("Divide by zero.");
+        }
+        int result = x - y * static_cast<int>(x / y);
+        return std::make_shared<NumericValue>(result);
+    }
+    else {
+        throw LispError("The remainder procedure need only 2 params.");
+    }
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"*", &multiply}, 
@@ -802,6 +890,9 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"/", &divide}, 
     {"abs", &abs}, 
     {"expt", &expt}, 
+    {"quotient", &quotient}, 
+    {"modulo", &modulo}, 
+    {"remainder", &remainder}, 
     {">", &larger}, 
     {"apply", &apply}, 
     {"display", &display}, 
