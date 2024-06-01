@@ -44,27 +44,6 @@ ValuePtr multiply(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<NumericValue>(result);
 }
 
-ValuePtr larger(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() < 2) {
-        throw LispError("Less params than needed.");
-    }
-    else {
-        bool result = true;
-        if (!params[0]->isNumber()) {
-            throw LispError("Cannot compare a non-numeric value.");
-        }
-        for (int i = 1; i < params.size(); i++) {
-            if (params[i]->isNumber()) {
-                result = result && *params[i]->asNumber() < *params[i - 1]->asNumber();
-            }
-            else {
-                throw LispError("Cannot compare a non-numeric value.");
-            }
-        }
-        return std::make_shared<BooleanValue>(result);
-    }
-}
-
 ValuePtr reduce(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("Less params than needed.");
@@ -771,116 +750,204 @@ ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
-ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The expt procedure need 2 params, given 0.");
+namespace{
+    void check_n_params(const std::vector<ValuePtr>& params, int n, const std::string& procedure) {
+        if (params.size() != n) {
+            throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
+        }
     }
-    else if (params.size() == 1) {
-        throw LispError("The expt procedure need 2 params, given 1.");
+
+    void check_two_numbers(const std::vector<ValuePtr>& params, const std::string& procedure) {
+        check_n_params(params, 2, procedure);
+        if (!params[0]->isNumber() || !params[1]->isNumber()) {
+            throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
+        }
     }
-    else if (params.size() == 2) {
+    
+    void check_one_number(const std::vector<ValuePtr>& params, const std::string& procedure) {
+        check_n_params(params, 1, procedure);
         if (!params[0]->isNumber()) {
-            throw LispError("The expt procedure cannot receive a non-numeric value as the base.");
+            throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
         }
-        else if (!params[1]->isNumber()) {
-            throw LispError("The expt procedure cannot receive a non-numeric value as the exponent.");
-        }
-        if (*params[0]->asNumber() == 0 && *params[1]->asNumber() == 0) {
-            throw LispError("Undefined! The base and the exponent cannot be zero in the same time.");
-        }
-        return std::make_shared<NumericValue>(std::pow(*params[0]->asNumber(), *params[1]->asNumber()));
     }
-    else {
-        throw LispError("The expt procedure need only 2 params.");
+}
+
+ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_two_numbers(params, "expt");
+    if (*params[0]->asNumber() == 0 && *params[1]->asNumber() == 0) {
+        throw LispError("Undefined! The base and the exponent cannot be zero in the same time.");
     }
+    return std::make_shared<NumericValue>(std::pow(*params[0]->asNumber(), *params[1]->asNumber()));
 }
 
 ValuePtr quotient(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The quotient procedure need 2 params, given 0.");
+    check_two_numbers(params, "quotient");
+    double x = *params[0]->asNumber();
+    double y = *params[1]->asNumber();
+    if (y == 0) {
+        throw LispError("Divide by zero.");
     }
-    else if (params.size() == 1) {
-        throw LispError("The quotient procedure need 2 params, given 1.");
-    }
-    else if (params.size() == 2) {
-        if (!params[0]->isNumber()) {
-            throw LispError("The quotient procedure cannot receive a non-numeric value.");
-        }
-        else if (!params[0]->isNumber()) {
-            throw LispError("The quotient procedure cannot receive a non-numeric value.");
-        }
-        double x = *params[0]->asNumber();
-        double y = *params[1]->asNumber();
-        if (y == 0) {
-            throw LispError("Divide by zero.");
-        }
-        double result = x / y;
-        if (static_cast<int>(result) == result) 
-            return std::make_shared<NumericValue>(result);
-        else 
-            return std::make_shared<NumericValue>(static_cast<int>(result));
-    }
-    else {
-        throw LispError("The quotient procedure need only 2 params.");
-    }
+    double result = x / y;
+    if (static_cast<int>(result) == result) 
+        return std::make_shared<NumericValue>(result);
+    else 
+        return std::make_shared<NumericValue>(static_cast<int>(result));
 }
 
 ValuePtr modulo(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The modulo procedure need 2 params, given 0.");
+    check_two_numbers(params, "modulo");
+    double x = *params[0]->asNumber();
+    double y = *params[1]->asNumber();
+    if (static_cast<int>(x) != x || static_cast<int>(y) != y) {
+        throw LispError("The modulo procedure should receive integers, given not-integers.");
     }
-    else if (params.size() == 1) {
-        throw LispError("The modulo procedure need 2 params, given 1.");
+    if (y == 0) {
+        throw LispError("Divide by zero.");
     }
-    else if (params.size() == 2) {
-        if (!params[0]->isNumber() || !params[1]->isNumber()) {
-            throw LispError("The modulo procedure cannot receive a non-numeric value.");
-        }
-        double x = *params[0]->asNumber();
-        double y = *params[1]->asNumber();
-        if (static_cast<int>(x) != x || static_cast<int>(y) != y) {
-            throw LispError("The modulo procedure should receive integers, given not-integers.");
-        }
-        if (y == 0) {
-            throw LispError("Divide by zero.");
-        }
-        int a = static_cast<int>(x);
-        int b = static_cast<int>(y);
-        int result = a % b;
-        if (result * b < 0) 
-            result += b;
-        return std::make_shared<NumericValue>(result);
-    }
-    else {
-        throw LispError("The modulo procedure need only 2 params.");
-    }
+    int a = static_cast<int>(x);
+    int b = static_cast<int>(y);
+    int result = a % b;
+    if (result * b < 0) 
+        result += b;
+    return std::make_shared<NumericValue>(result);
 }
 
 ValuePtr remainder(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_two_numbers(params, "remainder");
+    double x = *params[0]->asNumber();
+    double y = *params[1]->asNumber();
+    if (static_cast<int>(x) != x || static_cast<int>(y) != y) {
+        throw LispError("The remainder procedure should receive integers, given not-integers.");
+    }
+    if (y == 0) {
+        throw LispError("Divide by zero.");
+    }
+    int result = x - y * static_cast<int>(x / y);
+    return std::make_shared<NumericValue>(result);
+}
+
+ValuePtr _eq(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
-        throw LispError("The remainder procedure need 2 params, given 0.");
+        throw LispError("The eq? procedure need 2 params, given 0.");
     }
     else if (params.size() == 1) {
-        throw LispError("The remainder procedure need 2 params, given 1.");
+        throw LispError("The eq? procedure need 2 params, given 1.");
     }
     else if (params.size() == 2) {
-        if (!params[0]->isNumber() || !params[1]->isNumber()) {
-            throw LispError("THe remainder procedure cannot receive a non-numeric value.");
+        if (&params[0] == &params[1]) {
+            return std::make_shared<BooleanValue>(true);
         }
-        double x = *params[0]->asNumber();
-        double y = *params[1]->asNumber();
-        if (static_cast<int>(x) != x || static_cast<int>(y) != y) {
-            throw LispError("The remainder procedure should receive integers, given not-integers.");
+        else {
+            return std::make_shared<BooleanValue>(false);
         }
-        if (y == 0) {
-            throw LispError("Divide by zero.");
-        }
-        int result = x - y * static_cast<int>(x / y);
-        return std::make_shared<NumericValue>(result);
     }
     else {
-        throw LispError("The remainder procedure need only 2 params.");
+        throw LispError("The eq? procedure need only 2 params.");
     }
+}
+
+ValuePtr _equal(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.size() == 0) {
+        throw LispError("The equal? procedure need 2 params, given 0.");
+    }
+    else if (params.size() == 1) {
+        throw LispError("The equal? procedure need 2 params, given 1.");
+    }
+    else if (params.size() == 2) {
+        if (params[0]->getType() != params[1]->getType()) {
+            return std::make_shared<BooleanValue>(false);
+        }
+        else {
+            if (params[0]->getType() == ValueType::BOOLEAN_VALUE) {
+                return std::make_shared<BooleanValue>(std::dynamic_pointer_cast<BooleanValue>(params[0])->getValue() == std::dynamic_pointer_cast<BooleanValue>(params[1])->getValue());
+            }
+            else if (params[0]->getType() == ValueType::NUMERIC_VALUE) {
+                return std::make_shared<BooleanValue>(std::dynamic_pointer_cast<NumericValue>(params[0])->getValue() == std::dynamic_pointer_cast<NumericValue>(params[1])->getValue());
+            }
+            else if (params[0]->getType() == ValueType::STRING_VALUE) {
+                return std::make_shared<BooleanValue>(std::dynamic_pointer_cast<StringValue>(params[0])->getValue() == std::dynamic_pointer_cast<StringValue>(params[1])->getValue());
+            }
+            else if (params[0]->getType() == ValueType::NIL_VALUE) {
+                return std::make_shared<BooleanValue>(true);
+            }
+            else if (params[0]->getType() == ValueType::SYMBOL_VALUE) {
+                return std::make_shared<BooleanValue>(std::dynamic_pointer_cast<SymbolValue>(params[0])->getName() == std::dynamic_pointer_cast<SymbolValue>(params[1])->getName());
+            }
+            else if (params[0]->getType() == ValueType::PAIR_VALUE) {
+                return std::make_shared<BooleanValue>(change_to_bool(_equal({car({params[0]}, env), car({params[1]}, env)}, env)) && change_to_bool(_equal({cdr({params[0]}, env), cdr({params[1]}, env)}, env)));
+            }
+            else if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+                return std::make_shared<BooleanValue>(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction() == std::dynamic_pointer_cast<BuiltinProcValue>(params[1])->getFunction());
+            }
+            else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
+                return std::make_shared<BooleanValue>(&params[0] == &params[1]);
+            }
+            else {
+                throw LispError("Unimplement in equal?.");
+            }
+        }
+    }
+    else {
+        throw LispError("The equal? procedure need only 2 params.");
+    }
+}
+
+ValuePtr _not(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The not procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        return std::make_shared<BooleanValue>(!change_to_bool(params[0]));
+    }
+    else {
+        throw LispError("The not procedure need only 1 params.");
+    }
+}
+
+ValuePtr __equal(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_two_numbers(params, "=");
+    return std::make_shared<BooleanValue>(*params[0]->asNumber() == *params[1]->asNumber());
+}
+
+ValuePtr less(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_two_numbers(params, "<");
+    return std::make_shared<BooleanValue>(*params[0]->asNumber() < *params[1]->asNumber());
+}
+
+ValuePtr larger(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_two_numbers(params, ">");
+    return std::make_shared<BooleanValue>(*params[0]->asNumber() > *params[1]->asNumber());
+}
+
+ValuePtr less_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_two_numbers(params, "<=");
+    return std::make_shared<BooleanValue>(*params[0]->asNumber() <= *params[1]->asNumber());
+}
+
+ValuePtr larger_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_two_numbers(params, ">=");
+    return std::make_shared<BooleanValue>(*params[0]->asNumber() >= *params[1]->asNumber());
+}
+
+ValuePtr even(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_one_number(params, "even?");
+    if (static_cast<int>(*params[0]->asNumber()) != *params[0]->asNumber()) {
+        throw LispError("The procedure even? cannot receive a non-integer value.");
+    }
+    return std::make_shared<BooleanValue>(static_cast<int>(*params[0]->asNumber()) % 2 == 0);
+}
+
+ValuePtr odd(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    check_one_number(params, "odd?");
+    if (static_cast<int>(*params[0]->asNumber()) != *params[0]->asNumber()) {
+        throw LispError("The procedure odd? cannot receive a non-integer value.");
+    }
+    return std::make_shared<BooleanValue>(static_cast<int>(*params[0]->asNumber()) % 2 != 0);
+}
+
+ValuePtr zero(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_one_number(params, "zero?");
+    return std::make_shared<BooleanValue>(*params[0]->asNumber() == 0);
 }
 
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
@@ -893,7 +960,17 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"quotient", &quotient}, 
     {"modulo", &modulo}, 
     {"remainder", &remainder}, 
+    {"eq?", &_eq}, 
+    {"equal?", &_equal}, 
+    {"not", &_not}, 
+    {"=", &__equal}, 
+    {"<", &less}, 
     {">", &larger}, 
+    {"<=", &less_or_equal}, 
+    {">=", &larger_or_equal}, 
+    {"even?", &even}, 
+    {"odd?", &odd}, 
+    {"zero?", &zero}, 
     {"apply", &apply}, 
     {"display", &display}, 
     {"displayln", &displayln}, 
