@@ -81,28 +81,12 @@ ValuePtr quoteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
 
 namespace{
     bool change_to_bool(ValuePtr ptr, EvalEnv& env) {
-        if (ptr->isNil()) {
+        if (env.eval(ptr)->getType() == ValueType::BOOLEAN_VALUE && !std::dynamic_pointer_cast<BooleanValue>(env.eval(ptr))->getValue()) {
             return false;
         }
-        else if (ptr->getType() == ValueType::BOOLEAN_VALUE) {
-            return std::dynamic_pointer_cast<BooleanValue>(ptr)->getValue();
+        else {
+            return true;
         }
-        else if (ptr->getType() == ValueType::NUMERIC_VALUE) {
-            return std::dynamic_pointer_cast<NumericValue>(ptr)->getValue();
-        }
-        else if (ptr->getType() == ValueType::STRING_VALUE) {
-            return std::dynamic_pointer_cast<StringValue>(ptr)->getValue() != "";
-        }
-        else if (ptr->isSymbol()) {
-            return change_to_bool(env.eval(ptr), env);
-        }
-        else if (ptr->isList()) {
-            auto pairPtr = std::dynamic_pointer_cast<PairValue>(ptr);
-            if (pairPtr->getLeft()->isSymbol() && *pairPtr->getLeft()->asSymbol() == "quote") {
-                return true;
-            }
-        }
-        return change_to_bool(env.eval(ptr), env);
     }
 }
 
