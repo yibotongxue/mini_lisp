@@ -245,15 +245,8 @@ std::vector<ValuePtr> SymbolValue::toVector() const {
 namespace{
     void backtracking(std::vector<ValuePtr>& vec, ValuePtr p) {
         vec.push_back(p);
-        if (p->isList()) {
+        if (p->isList() && !p->isNil()) {
             auto pairP = std::dynamic_pointer_cast<PairValue>(p);
-            if (pairP->getLeft()->isSymbol()) {
-                auto symbolP = std::dynamic_pointer_cast<SymbolValue>(pairP->getLeft());
-                if (innerSymbolTable.find(*symbolP->asSymbol()) != innerSymbolTable.end() 
-                    || SPECIAL_FORMS.find(*symbolP->asSymbol()) != SPECIAL_FORMS.end()) {
-                        return;
-                }
-            }
             backtracking(vec, pairP->getRight());
         }
     }
@@ -263,9 +256,6 @@ std::vector<ValuePtr> PairValue::toVector() const {
     std::vector<ValuePtr> result{};
     result.push_back(left);
     backtracking(result, right);
-    if (!result.back()->isNil()) {
-        result.push_back(std::make_shared<NilValue>());
-    }
     return result;
 }
 
