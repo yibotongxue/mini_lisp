@@ -592,6 +592,86 @@ ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+namespace{
+    bool change_to_bool(const ValuePtr& ptr) {
+        if (ptr->getType() == ValueType::BOOLEAN_VALUE && !std::dynamic_pointer_cast<BooleanValue>(ptr)->getValue()) {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+}
+
+ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.size() == 0) {
+        throw LispError("The filter procedure need 2 params, given 0.");
+    }
+    else if (params.size() == 1) {
+        throw LispError("The filter procedure need 2 params, given 1.");
+    }
+    else if (params.size() == 2) {
+        if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+            if (params[1]->isList()) {
+                std::vector<ValuePtr> result{};
+                auto vec = params[1]->toVector();
+                if (vec.size() > 0) {
+                    if (change_to_bool(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({vec[0]}, env))) {
+                        result.push_back(vec[0]);
+                    }
+                }
+                for (int i = 1; i < vec.size() - 1; i++) {
+                    if (vec[i]->getType() == ValueType::PAIR_VALUE) {
+                        if (change_to_bool(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}, env))) {
+                            result.push_back(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft());
+                        }
+                    }
+                }
+                result.push_back(std::make_shared<NilValue>());
+                return makeList(result, 0);
+            }
+            else if (params[1]->isNil()) {
+                return std::make_shared<NilValue>();
+            }
+            else {
+                throw LispError("The filter procedure need list param as the second param.");
+            }
+        }
+        else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
+            if (params[1]->isList()) {
+                std::vector<ValuePtr> result{};
+                auto vec = params[1]->toVector();
+                if (vec.size() > 0) {
+                    if (change_to_bool(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({vec[0]}))) {
+                        result.push_back(vec[0]);
+                    }
+                }
+                for (int i = 1; i < vec.size() - 1; i++) {
+                    if (vec[i]->getType() == ValueType::PAIR_VALUE) {
+                        if (change_to_bool(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}))) {
+                            result.push_back(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft());
+                        }
+                    }
+                }
+                result.push_back(std::make_shared<NilValue>());
+                return makeList(result, 0);
+            }
+            else if (params[1]->isNil()) {
+                return std::make_shared<NilValue>();
+            }
+            else {
+                throw LispError("The filter procedure need list param as the second param.");
+            }
+        }
+        else {
+            throw LispError("The filter proceduren need procedure param as the first param.");
+        }
+    }
+    else {
+        throw LispError("The filter procedure need only 2 params.");
+    }
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"print", &print}, 
@@ -620,5 +700,6 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"cons", &cons}, 
     {"length", &length}, 
     {"list", &_list}, 
-    {"map", &_map}
+    {"map", &_map}, 
+    {"filter", &filter}
 };
