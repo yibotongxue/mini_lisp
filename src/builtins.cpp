@@ -425,7 +425,7 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
     else {
         std::vector<ValuePtr> result{};
         for (int i = 0; i < params.size() - 1; i++) {
-            if (params[i]->isList()) {
+            if (params[i]->isList() ||params[i]->isNil()) {
                auto vec = params[i]->toVector();
                if (vec.size() > 0) {
                    result.push_back(vec[0]);
@@ -456,6 +456,142 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+ValuePtr car(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The car procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->getType() == ValueType::PAIR_VALUE) {
+            return std::dynamic_pointer_cast<PairValue>(params[0])->getLeft();
+        }
+        else {
+            throw LispError("THe car procedure need pair value.");
+        }
+    }
+    else {
+        throw LispError("The car procedure need only 1 params.");
+    }
+}
+
+ValuePtr cdr(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("THe cdr procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->getType() == ValueType::PAIR_VALUE) {
+            return std::dynamic_pointer_cast<PairValue>(params[0])->getRight();
+        }
+        else {
+            throw LispError("The cdr procedure need pair value.");
+        }
+    }
+    else {
+        throw LispError("The cdr procedure need only 1 params.");
+    }
+}
+
+ValuePtr cons(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The cons procedure need 2 params, given 0.");
+    }
+    else if (params.size() == 1) {
+        throw LispError("The cons procedure need 2 params, given 1.");
+    }
+    else if (params.size() == 2) {
+        return std::make_shared<PairValue>(params[0], params[1]);
+    }
+    else {
+        throw LispError("The cons procedure need only 2 params.");
+    }
+}
+
+ValuePtr length(const std::vector<ValuePtr>& params, EvalEnv&) {
+    if (params.size() == 0) {
+        throw LispError("The length proceduren need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->isList() || params[0]->isNil()) {
+            if (params[0]->isNil()) {
+                return std::make_shared<NumericValue>(0);
+            }
+            else {
+                return std::make_shared<NumericValue>(params[0]->toVector().size() - 1);
+            }
+        }
+        else {
+            throw LispError("The length procedure need list param.");
+        }
+    }
+    else {
+        throw LispError("The length procedure need only 1 params.");
+    }
+}
+
+ValuePtr _list(const std::vector<ValuePtr>& params, EvalEnv&) {
+    std::vector<ValuePtr> new_params{params};
+    new_params.push_back(std::make_shared<NilValue>());
+    return makeList(new_params, 0);
+}
+
+ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.size() == 0) {
+        throw LispError("The map procedure need 2 params, given 0.");
+    }
+    else if (params.size() == 1) {
+        throw LispError("The map procedure need 2 params, given 1.");
+    }
+    else if (params.size() == 2) {
+        if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+            std::vector<ValuePtr>result{};
+            if (params[1]->isList()) {
+                auto vec = params[1]->toVector();
+                if (vec.size() > 0)
+                    result.push_back(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({vec[0]}, env));
+                for (int i = 1; i < vec.size() - 1; i++) {
+                    if (vec[i]->getType() == ValueType::PAIR_VALUE) {
+                        result.push_back(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}, env));
+                    }
+                }
+                result.push_back(std::make_shared<NilValue>());
+                return makeList(result, 0);
+            }
+            else if (params[1]->isNil()) {
+                return std::make_shared<NilValue>();
+            }
+            else {
+                throw LispError("The map procedure need list param as the second param.");
+            }
+        }
+        else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
+            std::vector<ValuePtr> result{};
+            if (params[1]->isList()) {
+                auto vec = params[1]->toVector();
+                if (vec.size() > 0)
+                    result.push_back(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({vec[0]}));
+                for (int i = 1; i < vec.size() - 1; i++) {
+                    if (vec[i]->getType() == ValueType::PAIR_VALUE) {
+                        result.push_back(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}));
+                    }
+                }
+                result.push_back(std::make_shared<NilValue>());
+                return makeList(result, 0);
+            }
+            else if (params[1]->isNil()) {
+                return std::make_shared<NilValue>();
+            }
+            else {
+                throw LispError("The map procedure need list param as the second param.");
+            }
+        }
+        else {
+            throw LispError("The map procedure need procedure param as the first param.");
+        }
+    }
+    else {
+        throw LispError("The map procedure need only 2 params.");
+    }
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"print", &print}, 
@@ -478,5 +614,11 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"procedure?", &isProcedure}, 
     {"string?", &isString}, 
     {"symbol?", &isSymbol}, 
-    {"append", &append}
+    {"append", &append}, 
+    {"car", &car}, 
+    {"cdr", &cdr}, 
+    {"cons", &cons}, 
+    {"length", &length}, 
+    {"list", &_list}, 
+    {"map", &_map}
 };

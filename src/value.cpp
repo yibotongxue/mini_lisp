@@ -173,7 +173,7 @@ namespace{
     const Value& pharase(std::vector<std::string>& result, const Value& ref) {
         if(typeid(ref) == typeid(PairValue&)) {
             const PairValue& r = dynamic_cast<const PairValue&>(ref);
-            pharase(result, *(r.getLeft())); // 递归解析左侧值
+            result.push_back(r.getLeft()->toString());
           const Value& reff = pharase(result, *(r.getRight())); // 递归解析右侧值
           return reff;
       }
