@@ -9,6 +9,7 @@
 #include "../include/error.h"
 #include "../include/eval_env.h"
 #include <iostream>
+#include <cmath>
 
 ValuePtr add(const std::vector<ValuePtr>& params, EvalEnv&) {
     double result = 0;
@@ -721,18 +722,94 @@ ValuePtr _reduce(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+ValuePtr divide(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.size() == 0) {
+        throw LispError("The / procedure need at least 1 param, given 0.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->isNumber()) {
+            if (*params[0]->asNumber() == 0) {
+                throw LispError("Division by zero.");
+            }
+            return std::make_shared<NumericValue>(1.0 / *params[0]->asNumber());
+        }
+        else {
+            throw LispError("Cannot divide a non-numeric value.");
+        }
+    }
+    else if (params.size() == 2) {
+        if (!params[0]->isNumber()) {
+            throw LispError("Cannot divide a non-numeric value.");
+        }
+        else if (!params[1]->isNumber()) {
+            throw LispError("Cannot use a non-numeric value to divide another value.");
+        }
+        if (*params[1]->asNumber() == 0) {
+            throw LispError("Division by zero.");
+        }
+        return std::make_shared<NumericValue>(*params[0]->asNumber() / *params[1]->asNumber());
+    }
+    else {
+        throw LispError("The / procedure need at most 2 params.");
+    }
+}
+
+ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.size() == 0) {
+        throw LispError("The abs procedure need 1 params.");
+    }
+    else if (params.size() == 1) {
+        if (params[0]->isNumber()) {
+            return std::make_shared<NumericValue>(std::abs(*params[0]->asNumber()));
+        }
+        else {
+            throw LispError("The abs cannot receive a non-numeric value.");
+        }
+    }
+    else {
+        throw LispError("The abs procedure need only 1 params.");
+    }
+}
+
+ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv& env) {
+    if (params.size() == 0) {
+        throw LispError("The expt procedure need 2 params, given 0.");
+    }
+    else if (params.size() == 1) {
+        throw LispError("The expt procedure need 2 params, given 1.");
+    }
+    else if (params.size() == 2) {
+        if (!params[0]->isNumber()) {
+            throw LispError("The expt procedure cannot receive a non-numeric value as the base.");
+        }
+        else if (!params[1]->isNumber()) {
+            throw LispError("The expt procedure cannot receive a non-numeric value as the exponent.");
+        }
+        if (*params[0]->asNumber() == 0 && *params[1]->asNumber() == 0) {
+            throw LispError("Undefined! The base and the exponent cannot be zero in the same time.");
+        }
+        return std::make_shared<NumericValue>(std::pow(*params[0]->asNumber(), *params[1]->asNumber()));
+    }
+    else {
+        throw LispError("The expt procedure need only 2 params.");
+    }
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
-    {"print", &print}, 
     {"*", &multiply}, 
-    {">", &larger}, 
     {"-", &reduce}, 
+    {"/", &divide}, 
+    {"abs", &abs}, 
+    {"expt", &expt}, 
+    {">", &larger}, 
     {"apply", &apply}, 
     {"display", &display}, 
     {"displayln", &displayln}, 
     {"error", &error}, 
     {"exit", &_exit}, 
     {"newline", &newline}, 
+    {"print", &print}, 
     {"atom?", &atom}, 
     {"boolean?", &boolean}, 
     {"integer?", &integer}, 
