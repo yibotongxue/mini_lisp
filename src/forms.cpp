@@ -43,7 +43,7 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
             std::vector<std::string> params{};\
             if (functionName->isSymbol()) {
                 auto paramPtrs = functionName_params->toVector();
-                for (int i = 1; i < paramPtrs.size() - 1; i++) {
+                for (int i = 1; i < static_cast<int>(paramPtrs.size()) - 1; i++) {
                     if (paramPtrs[i]->isList()) {
                         auto param = std::dynamic_pointer_cast<PairValue>(paramPtrs[i])->getLeft();
                         if (param->isSymbol()) {
@@ -53,7 +53,7 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
                 }
                 auto functionBodyPtr = Pairptr->toVector();
                 std::vector<ValuePtr> functionBody{};
-                for (int i = 1; i < functionBodyPtr.size() - 1; i++) {
+                for (int i = 1; i < static_cast<int>(functionBodyPtr.size()) - 1; i++) {
                     functionBody.push_back(std::dynamic_pointer_cast<PairValue>(functionBodyPtr[i])->getLeft());
                 }
                 env.defineBinding(*functionName->asSymbol(), std::make_shared<LambdaValue>(params, functionBody, env.shared_from_this()));
@@ -113,7 +113,7 @@ ValuePtr ifForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
 }
 
 ValuePtr andForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
-    for (int i = 1; i < args.size() - 1; i++) {
+    for (int i = 1; i < static_cast<int>(args.size()) - 1; i++) {
         if (!change_to_bool(std::dynamic_pointer_cast<PairValue>(args[i])->getLeft(), env))
             return std::make_shared<BooleanValue>(false);
     }
@@ -124,7 +124,7 @@ ValuePtr andForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
 }
 
 ValuePtr orForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
-    for (int i = 1; i < args.size() - 1; i++) {
+    for (int i = 1; i < static_cast<int>(args.size()) - 1; i++) {
         if (change_to_bool(std::dynamic_pointer_cast<PairValue>(args[i])->getLeft(), env))
             return env.eval(std::dynamic_pointer_cast<PairValue>(args[i])->getLeft());
     }
@@ -157,7 +157,7 @@ ValuePtr lambdaForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
         }
         auto bodyPtr = args[1]->toVector();
         std::vector<ValuePtr> body{};
-        for (int i = 1; i < bodyPtr.size() - 1; i++) {
+        for (int i = 1; i < static_cast<int>(bodyPtr.size()) - 1; i++) {
             body.push_back(std::dynamic_pointer_cast<PairValue>(bodyPtr[i])->getLeft());
         }
         return std::make_shared<LambdaValue>(params, body, env.shared_from_this());
@@ -170,7 +170,7 @@ ValuePtr condForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     }
     else {
         ValuePtr* result = nullptr;
-        for (int i = 1; i < args.size() - 1; i++) {
+        for (int i = 1; i < static_cast<int>(args.size()) - 1; i++) {
             auto new_args = std::dynamic_pointer_cast<PairValue>(args[i])->getLeft()->toVector();
             if (new_args.size() <= 1) {
                 throw LispError("There must be at least one sentence in cond.");
@@ -179,7 +179,7 @@ ValuePtr condForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
             std::vector<ValuePtr> results{};
             if (condition->isSymbol() && *condition->asSymbol() == "else") {
                 if (i == args.size() - 2) {
-                    for (int i = 1; i < new_args.size() - 1; i++) {
+                    for (int i = 1; i < static_cast<int>(new_args.size()) - 1; i++) {
                         auto arg = std::dynamic_pointer_cast<PairValue>(new_args[1])->getLeft();
                         results.push_back(env.eval(arg));
                     }
@@ -197,7 +197,7 @@ ValuePtr condForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
             else {
             results.push_back(env.eval(new_args[0]));
             if (change_to_bool(condition, env)) {
-                    for (int i = 1; i < new_args.size() - 1; i++) {
+                    for (int i = 1; i < static_cast<int>(new_args.size()) - 1; i++) {
                         auto arg = std::dynamic_pointer_cast<PairValue>(new_args[i])->getLeft();
                         results.push_back(env.eval(arg));
                     }
@@ -209,6 +209,149 @@ ValuePtr condForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     }
 }
 
+ValuePtr beginForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    if (args.size() < 2) {
+        throw LispError("Error!");
+    }
+    for (int i = 1; i < static_cast<int>(args.size()) - 1; i++) {
+        if (args[i]->isList()) {
+            auto arg = std::dynamic_pointer_cast<PairValue>(args[i])->getLeft();
+            if (i == args.size() - 2) {
+                return env.eval(arg);
+            }
+            else {
+                env.eval(arg);
+            }
+        }
+    }
+    return std::make_shared<NilValue>();
+}
+
+ValuePtr letForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    if (args.size() <= 2) {
+        throw LispError("The let form need variable sentence.");
+    }
+    else if (args.size() == 3) {
+        throw LispError("The let form need function body.");
+    }
+    else {
+        std::vector<std::string> params{};
+        std::vector<ValuePtr> new_args{};
+        try {
+            auto params_args = std::dynamic_pointer_cast<PairValue>(args[1])->getLeft()->toVector();
+            for (int i = 0; i < static_cast<int>(params_args.size()) - 1; i++) {
+                if (params_args[i]->isList()) {
+                    auto vec = params_args[i]->toVector();
+                    if (vec.size() <= 2) {
+                        throw LispError("The param name or value is missing.");
+                    }
+                    else if (vec.size() == 3) {
+                        if (vec[0]->isSymbol()) {
+                            params.push_back(*vec[0]->asSymbol());
+                        }
+                        else {
+                            throw LispError("The param name should be a symbol type.");
+                        }
+                        if (vec[1]->isList()) {
+                            new_args.push_back(env.eval(std::dynamic_pointer_cast<PairValue>(vec[1])->getLeft()));
+                        }
+                    }
+                    else {
+                        throw LispError("The param list need param name and value, given 3 object.");
+                    }
+                }
+                else {
+                    throw LispError("The let form here need a list.");
+                }
+            }
+            std::vector<ValuePtr> body{};
+            for (int i = 2; i < static_cast<int>(args.size()) - 1; i++) {
+                if (args[i]->isList()) {
+                    body.push_back(std::dynamic_pointer_cast<PairValue>(args[i])->getLeft());
+                }
+            }
+            auto lambda = std::make_shared<LambdaValue>(params, body, env.shared_from_this());
+            return lambda->apply(new_args);
+        }
+        catch(...) {
+            throw LispError("Unimplement error.");
+        }
+    }
+}
+
+namespace{
+    ValuePtr makeList(std::vector<ValuePtr>& vec, int start) {
+        if (vec.size() == 0) {
+            return std::make_shared<NilValue>();
+        }
+        else if(vec.size() == 1) {
+            return vec[0];
+        }
+        if (start == vec.size() - 2) {
+            return std::make_shared<PairValue>(vec[start], vec[start + 1]);
+        }
+        else {
+            return std::make_shared<PairValue>(vec[start], makeList(vec, start + 1));
+        }
+    }
+}
+
+ValuePtr quasiquoteteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    if (args.size() <= 2) {
+        throw LispError("The quasiquote form need a arg.");
+    }
+    else if (args.size() == 3) {
+        if (args[1]->isList()){
+            auto arg = std::dynamic_pointer_cast<PairValue>(args[1])->getLeft();
+            if (arg->isList()) {
+                auto vec = arg->toVector();
+                std::vector<ValuePtr> new_vec{};
+                if (vec.size() == 0) {
+                    return std::make_shared<NilValue>();
+                }
+                else {
+                    auto vecVec = vec[0]->toVector();
+                    if (vecVec.size() == 3 && vecVec[0]->isSymbol() && *vecVec[0]->asSymbol() == "unquote") {
+                        if (vecVec[1]->isList()) {
+                            auto ptr = std::dynamic_pointer_cast<PairValue>(vecVec[1])->getLeft();
+                            new_vec.push_back(env.eval(ptr));
+                        }
+                    }
+                    else {
+                        new_vec.push_back(vec[0]);
+                    }
+                    for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
+                        if (vec[i]->isList()) {
+                            auto element = std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft();
+                            auto vecVec = element->toVector();
+                            if (vecVec.size() == 3 && vecVec[0]->isSymbol() && *vecVec[0]->asSymbol() == "unquote") {
+                                if (vecVec[1]->isList()) {
+                                    auto ptr = std::dynamic_pointer_cast<PairValue>(vecVec[1])->getLeft();
+                                    new_vec.push_back(env.eval(ptr));
+                                }
+                            }
+                            else {
+                                new_vec.push_back(element);
+                            }
+                        }
+                    }
+                    new_vec.push_back(std::make_shared<NilValue>());
+                    return makeList(new_vec, 0);
+                }
+            }
+            else {
+                return arg;
+            }
+        }
+        else {
+            throw LispError("Unimplement error.");
+        }
+    }
+    else {
+        throw LispError("The quasiquote form need 1 args.");
+    }
+}
+
 std::unordered_map<std::string, SpecialFormType*> SPECIAL_FORMS{
     {"define", defineForm},
     {"quote", quoteForm},
@@ -216,5 +359,8 @@ std::unordered_map<std::string, SpecialFormType*> SPECIAL_FORMS{
     {"and", andForm},
     {"or", orForm}, 
     {"lambda", lambdaForm}, 
-    {"cond", &condForm}
+    {"cond", condForm}, 
+    {"begin", beginForm}, 
+    {"let", letForm}, 
+    {"quasiquote", quasiquoteteForm}
 };

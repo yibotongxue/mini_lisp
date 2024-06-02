@@ -404,8 +404,8 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
     else {
         std::vector<ValuePtr> result{};
-        for (int i = 0; i < params.size() - 1; i++) {
-            if (params[i]->isList() ||params[i]->isNil()) {
+        for (int i = 0; i < static_cast<int>(params.size()) - 1; i++) {
+            if (params[i]->isList() || params[i]->isNil()) {
                auto vec = params[i]->toVector();
                if (vec.size() > 0) {
                    result.push_back(vec[0]);
@@ -495,7 +495,7 @@ ValuePtr length(const std::vector<ValuePtr>& params, EvalEnv&) {
                 return std::make_shared<NumericValue>(0);
             }
             else {
-                return std::make_shared<NumericValue>(params[0]->toVector().size() - 1);
+                return std::make_shared<NumericValue>(static_cast<int>(params[0]->toVector().size()) - 1);
             }
         }
         else {
@@ -527,7 +527,7 @@ ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
                 auto vec = params[1]->toVector();
                 if (vec.size() > 0)
                     result.push_back(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({vec[0]}, env));
-                for (int i = 1; i < vec.size() - 1; i++) {
+                for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
                     if (vec[i]->getType() == ValueType::PAIR_VALUE) {
                         result.push_back(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}, env));
                     }
@@ -548,7 +548,7 @@ ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
                 auto vec = params[1]->toVector();
                 if (vec.size() > 0)
                     result.push_back(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({vec[0]}));
-                for (int i = 1; i < vec.size() - 1; i++) {
+                for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
                     if (vec[i]->getType() == ValueType::PAIR_VALUE) {
                         result.push_back(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}));
                     }
@@ -600,7 +600,7 @@ ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
                         result.push_back(vec[0]);
                     }
                 }
-                for (int i = 1; i < vec.size() - 1; i++) {
+                for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
                     if (vec[i]->getType() == ValueType::PAIR_VALUE) {
                         if (change_to_bool(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}, env))) {
                             result.push_back(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft());
@@ -626,7 +626,7 @@ ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
                         result.push_back(vec[0]);
                     }
                 }
-                for (int i = 1; i < vec.size() - 1; i++) {
+                for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
                     if (vec[i]->getType() == ValueType::PAIR_VALUE) {
                         if (change_to_bool(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}))) {
                             result.push_back(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft());
