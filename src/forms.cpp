@@ -26,7 +26,7 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
             env.defineBinding(first_Name, env.eval(std::dynamic_pointer_cast<PairValue>(second_Value)->getLeft()));
         }
         else {
-            env.defineBinding(first_Name, env.eval(second_Value));
+            env.defineBinding(first_Name, second_Value);
         }
 
         if (env.lookupBinding(first_Name)->getType() == ValueType::BUILTIN_PROC_VALUE) {
@@ -40,7 +40,7 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
         auto functionName_params = Pairptr->getLeft();
         if (functionName_params->isList()) {
             auto functionName = std::dynamic_pointer_cast<PairValue>(functionName_params)->getLeft();
-            std::vector<std::string> params{};\
+            std::vector<std::string> params{};
             if (functionName->isSymbol()) {
                 auto paramPtrs = functionName_params->toVector();
                 for (int i = 1; i < static_cast<int>(paramPtrs.size()) - 1; i++) {
@@ -97,9 +97,6 @@ ValuePtr ifForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
     else if (args.size() == 3) {
         throw LispError("There is no true branch defined");
     }
-    else if (args.size() == 4) {
-        throw LispError("There is no false branch defined");
-    }
     else if (args.size() > 5) {
         throw LispError("More sentence than expected.");
     }
@@ -108,6 +105,8 @@ ValuePtr ifForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
         return env.eval(std::dynamic_pointer_cast<PairValue>(args[2])->getLeft());
     }
     else {
+        if (args[3]->isNil())
+            return args[3];
         return env.eval(std::dynamic_pointer_cast<PairValue>(args[3])->getLeft());
     }
 }
@@ -237,15 +236,37 @@ ValuePtr letForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     else {
         std::vector<std::string> params{};
         std::vector<ValuePtr> new_args{};
-        try {
             auto params_args = std::dynamic_pointer_cast<PairValue>(args[1])->getLeft()->toVector();
-            for (int i = 0; i < static_cast<int>(params_args.size()) - 1; i++) {
+            if (params_args.size() > 0) {
+                auto vec = params_args[0]->toVector();
+                if (vec.size() <= 2) {
+                    throw LispError("The param name or value is mising.");
+                }
+                else if (vec.size() == 3) {
+                    if (vec[0]->isSymbol()) {
+                        params.push_back(*vec[0]->asSymbol());
+                    }
+                    else {
+                        throw LispError("The param name shoule be a symbol type.");
+                    }
+                    if (vec[1]->isList()) {
+                        new_args.push_back(env.eval(std::dynamic_pointer_cast<PairValue>(vec[1])->getLeft()));
+                    }
+                }
+                else {
+                    throw LispError("The param list need param name and value, given over 3 object.");
+                }
+            }
+            else {
+                throw LispError("The let form here need a list.");
+            }
+            for (int i = 1; i < static_cast<int>(params_args.size()) - 1; i++) {
                 if (params_args[i]->isList()) {
-                    auto vec = params_args[i]->toVector();
+                    auto vec = std::dynamic_pointer_cast<PairValue>(params_args[i])->getLeft()->toVector();
                     if (vec.size() <= 2) {
                         throw LispError("The param name or value is missing.");
                     }
-                    else if (vec.size() == 3) {
+                    else if (vec.size() >= 3) {
                         if (vec[0]->isSymbol()) {
                             params.push_back(*vec[0]->asSymbol());
                         }
@@ -272,10 +293,6 @@ ValuePtr letForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
             }
             auto lambda = std::make_shared<LambdaValue>(params, body, env.shared_from_this());
             return lambda->apply(new_args);
-        }
-        catch(...) {
-            throw LispError("Unimplement error.");
-        }
     }
 }
 
@@ -296,7 +313,7 @@ namespace{
     }
 }
 
-ValuePtr quasiquoteteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+ValuePtr quasiquoteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (args.size() <= 2) {
         throw LispError("The quasiquote form need a arg.");
     }
@@ -344,7 +361,7 @@ ValuePtr quasiquoteteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
             }
         }
         else {
-            throw LispError("Unimplement error.");
+            throw LispError("Unimplement error in forms.cpp, line 347.");
         }
     }
     else {
@@ -362,5 +379,5 @@ std::unordered_map<std::string, SpecialFormType*> SPECIAL_FORMS{
     {"cond", condForm}, 
     {"begin", beginForm}, 
     {"let", letForm}, 
-    {"quasiquote", quasiquoteteForm}
+    {"quasiquote", quasiquoteForm}
 };

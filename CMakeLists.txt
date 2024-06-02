@@ -13,6 +13,7 @@ set(SOURCES
     src/builtins.cpp
     src/forms.cpp
     src/eval_env.cpp
+    src/file.cpp
     src/main.cpp
 )
 

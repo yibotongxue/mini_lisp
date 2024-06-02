@@ -86,12 +86,14 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
         if (params[1]->isList() || params[1]->isNil()) {
             auto vec = params[1]->toVector();
             std::vector<ValuePtr> args;
-            for (int i = 0; i < vec.size(); i++) {
+            if (vec.size() > 0)
+                args.push_back(vec[0]);
+            for (int i = 1; i < vec.size(); i++) {
                 if (vec[i]->isList()) {
-                    args.push_back(env.eval(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()));
+                    args.push_back(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft());
                 }
                 else if (!vec[i]->isNil()) {
-                    args.push_back(env.eval(vec[i]));
+                    args.push_back(vec[i]);
                 }
             }
             return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()(args, env);
@@ -104,12 +106,14 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
         if (params[1]->isList()) {
             auto vec = params[1]->toVector();
             std::vector<ValuePtr> args;
-            for (int i = 0; i < vec.size(); i++) {
+            if (vec.size() > 0) 
+                    args.push_back(vec[0]);
+            for (int i = 1; i < vec.size(); i++) {
                 if (vec[i]->isList()) {
-                    args.push_back(env.eval(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()));
+                    args.push_back(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft());
                 }
                 else if (!vec[i]->isNil()) {
-                    args.push_back(env.eval(vec[i]));
+                    args.push_back(vec[i]);
                 }
             }
             return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply(args);
@@ -315,7 +319,7 @@ ValuePtr _pair(const std::vector<ValuePtr>& params, EvalEnv&) {
         throw LispError("The pair? procedure need 1 params.");
     }
     else if (params.size() == 1) {
-        if (params[0]->getType() == ValueType::PAIR_VALUE && !params[0]->isList()) {
+        if (params[0]->getType() == ValueType::PAIR_VALUE) {
             return std::make_shared<BooleanValue>(true);
         }
         else {
@@ -417,6 +421,7 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
                }
             }
             else {
+                std::cout << params[i]->toString() << std::endl;
                 throw LispError("The append procedure need a list param.");
             }
         }
@@ -826,7 +831,44 @@ ValuePtr remainder(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<NumericValue>(result);
 }
 
-ValuePtr _eq(const std::vector<ValuePtr>& params, EvalEnv&) {
+namespace{
+    bool isEqual(ValuePtr p1, ValuePtr p2, EvalEnv& env) {
+        if (p1->getType() != p2->getType()) {
+            return false;
+        }
+        else {
+            if (p1->getType() == ValueType::BOOLEAN_VALUE) {
+                return std::dynamic_pointer_cast<BooleanValue>(p1)->getValue() == std::dynamic_pointer_cast<BooleanValue>(p2)->getValue();
+            }
+            else if (p1->getType() == ValueType::NUMERIC_VALUE) {
+                return std::dynamic_pointer_cast<NumericValue>(p1)->getValue() == std::dynamic_pointer_cast<NumericValue>(p2)->getValue();
+            }
+            else if (p1->getType() == ValueType::STRING_VALUE) {
+                return std::dynamic_pointer_cast<StringValue>(p1)->getValue() == std::dynamic_pointer_cast<StringValue>(p2)->getValue();
+            }
+            else if (p1->getType() == ValueType::NIL_VALUE) {
+                return true;
+            }
+            else if (p1->getType() == ValueType::SYMBOL_VALUE) {
+                return std::dynamic_pointer_cast<SymbolValue>(p1)->getName() == std::dynamic_pointer_cast<SymbolValue>(p2)->getName();
+            }
+            else if (p1->getType() == ValueType::PAIR_VALUE) {
+                return isEqual(car({p1}, env), car({p2}, env), env) && isEqual(cdr({p1}, env), cdr({p2}, env), env);
+            }
+            else if (p1->getType() == ValueType::BUILTIN_PROC_VALUE) {
+                return std::dynamic_pointer_cast<BuiltinProcValue>(p1)->getFunction() == std::dynamic_pointer_cast<BuiltinProcValue>(p2)->getFunction();
+            }
+            else if (p1->getType() == ValueType::LAMBDA_VALUE) {
+                return &p1 == &p2;
+            }
+            else {
+                throw LispError("Unimplement in equal?.");
+            }
+        }
+    }
+}
+
+ValuePtr _eq(const std::vector<ValuePtr>& params, EvalEnv& env) {
     if (params.size() == 0) {
         throw LispError("The eq? procedure need 2 params, given 0.");
     }
@@ -834,7 +876,20 @@ ValuePtr _eq(const std::vector<ValuePtr>& params, EvalEnv&) {
         throw LispError("The eq? procedure need 2 params, given 1.");
     }
     else if (params.size() == 2) {
-        if (&params[0] == &params[1]) {
+        if (params[0]->isSelfEvaluating() && params[1]->isSelfEvaluating()) {
+            return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
+        }
+        else if (params[0]->isSymbol() && params[1]->isSymbol()) {
+            std::cout << "Both symbol." << std::endl;
+            return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
+        }
+        else if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE && params[1]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+            return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
+        }
+        else if (params[0]->getType() == ValueType::NIL_VALUE && params[1]->getType() == ValueType::NIL_VALUE) {
+            return std::make_shared<BooleanValue>(true);
+        }
+        if (params[0].get() == params[1].get()) {
             return std::make_shared<BooleanValue>(true);
         }
         else {
@@ -978,6 +1033,7 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"exit", &_exit}, 
     {"newline", &newline}, 
     {"print", &print}, 
+    {"eval", &eval}, 
     {"atom?", &atom}, 
     {"boolean?", &boolean}, 
     {"integer?", &integer}, 
@@ -993,6 +1049,7 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"cdr", &cdr}, 
     {"cons", &cons}, 
     {"length", &length}, 
+    {"len", &length}, 
     {"list", &_list}, 
     {"map", &_map}, 
     {"filter", &filter}, 

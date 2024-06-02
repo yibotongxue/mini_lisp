@@ -78,7 +78,7 @@ ValuePtr Parser::parse() {
           );
     }
     else {
-        throw SyntaxError("Unimplemented"); // 如果遇到为实现的词法标记，则抛出异常
+        throw SyntaxError("Unimplemented in parser.cpp, line 81"); // 如果遇到为实现的词法标记，则抛出异常
     }
 }
 

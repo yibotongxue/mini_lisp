@@ -7,6 +7,7 @@
 #include "../include/eval_env.h"
 #include "../include/error.h"
 #include "../include/forms.h"
+#include "../include/builtins.h"
 #include <iostream>
 
 using namespace std::literals;
@@ -75,7 +76,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
             return std::dynamic_pointer_cast<LambdaValue>(v[0])->apply(evalList(v[1]));
         }
         else if (v[0]->isSelfEvaluating()) {
-            throw LispError("Unimplement");
+            throw LispError("Unimplement in eval_env.cpp, line 78");
         }
         else {
             return eval(std::make_shared<PairValue>(eval(v[0]), std::dynamic_pointer_cast<PairValue>(expr)->getRight()));
@@ -121,7 +122,7 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
     }
     else {
         // 其他类型的表达式暂未实现，抛出异常
-        throw LispError("Unimplemented expression");
+        throw LispError("Unimplement in eval_env.cpp, line 124");
     }
 }
 
@@ -154,7 +155,7 @@ ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr>& args) {
         return std::dynamic_pointer_cast<LambdaValue>(proc)->apply(args);
     }
     else {
-        throw LispError("Unimplemented");
+        throw LispError("Unimplemented in eval_env.cpp, line 157");
     }
 }
 
@@ -184,7 +185,7 @@ std::shared_ptr<EvalEnv> EvalEnv::createChild(const std::vector<std::string>& pa
         throw LispError("The params are less than needed.");
     }
     for (int i = 0; i < params.size(); i++) {
-        env->symbolList[params[i]] = eval(args[i]);
+        env->symbolList[params[i]] = args[i];
     }
     env->parent = std::make_shared<EvalEnv>(*this);
     return env;

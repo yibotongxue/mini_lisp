@@ -272,7 +272,7 @@ ValuePtr LambdaValue::apply(const std::vector<ValuePtr>& args) {
     if (body.empty()) {
         return std::make_shared<NilValue>();
     }
-    for (int i = 0; i < body.size() - 1; i++) {
+    for (int i = 0; i < static_cast<int>(body.size()) - 1; i++) {
         env->eval(body[i]);
     }
     return env->eval(body.back());
