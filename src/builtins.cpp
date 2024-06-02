@@ -26,7 +26,7 @@ ValuePtr add(const std::vector<ValuePtr>& params, EvalEnv&) {
 
 ValuePtr print(const std::vector<ValuePtr>& params, EvalEnv&) {
     for (const auto& param : params) {
-        std::cout << param->toString() << std::endl;
+        std::cout << param->toString();
     }
     return std::make_shared<NilValue>();
 }

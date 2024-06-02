@@ -17,7 +17,7 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (args.size() == 3 && args.back()->isNil()) {
         throw LispError("Nothing found to define " + *args[1]->asSymbol());
     }
-    if (auto name = std::dynamic_pointer_cast<PairValue>(args[1])->getLeft()->asSymbol()) {
+    if (auto name = std::dynamic_pointer_cast<PairValue>(args[1])->getLeft()->asSymbol()) { // 定义变量
         auto first_Name = std::dynamic_pointer_cast<SymbolValue>(std::dynamic_pointer_cast<PairValue>(args[1])->getLeft())->getName();
 
         auto second_Value = args[2];
@@ -35,7 +35,7 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
 
         return std::make_shared<NilValue>();
     }
-    else if (std::dynamic_pointer_cast<PairValue>(args[1])->isList()) {
+    else if (std::dynamic_pointer_cast<PairValue>(args[1])->isList()) { // 定义函数
         auto Pairptr = std::dynamic_pointer_cast<PairValue>(args[1]);
         auto functionName_params = Pairptr->getLeft();
         if (functionName_params->isList()) {
@@ -74,7 +74,7 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
 }
 
 ValuePtr quoteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
-    if (args.size() < 3)
+    if (args.size() < 3) // quote特殊形式、引用内容、空表
         throw LispError("Nothing to quoted.");
     return std::dynamic_pointer_cast<PairValue>(args[1])->getLeft();
 }
@@ -95,26 +95,10 @@ ValuePtr ifForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
         throw LispError("No conditional statements are defined");
     }
     else if (args.size() == 3) {
-        auto temp = args[1];
-        std::vector<ValuePtr> new_args{args};
-        new_args.pop_back();
-        new_args.push_back(std::dynamic_pointer_cast<PairValue>(temp)->getRight());
-        if (new_args.back()->isNil()) {
-            throw LispError("There is no true branch defined");
-        }
-        new_args.push_back(std::make_shared<NilValue>());
-        return ifForm(new_args, env);
+        throw LispError("There is no true branch defined");
     }
     else if (args.size() == 4) {
-        auto temp = args[2];
-        std::vector<ValuePtr> new_args{args};
-        new_args.pop_back();
-        new_args.push_back(std::dynamic_pointer_cast<PairValue>(temp)->getRight());
-        if (new_args.back()->isNil()) {
-            throw LispError("There is no false branch defined");
-        }
-        new_args.push_back(std::make_shared<NilValue>());
-        return ifForm(new_args, env);
+        throw LispError("There is no false branch defined");
     }
     else if (args.size() > 5) {
         throw LispError("More sentence than expected.");
@@ -180,11 +164,57 @@ ValuePtr lambdaForm(const std::vector<ValuePtr>&args, EvalEnv& env) {
     }
 }
 
+ValuePtr condForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    if (args.size() <= 2) { // cond 和 空表
+        return std::make_shared<NilValue>();
+    }
+    else {
+        ValuePtr* result = nullptr;
+        for (int i = 1; i < args.size() - 1; i++) {
+            auto new_args = std::dynamic_pointer_cast<PairValue>(args[i])->getLeft()->toVector();
+            if (new_args.size() <= 1) {
+                throw LispError("There must be at least one sentence in cond.");
+            }
+            auto condition = new_args[0];
+            std::vector<ValuePtr> results{};
+            if (condition->isSymbol() && *condition->asSymbol() == "else") {
+                if (i == args.size() - 2) {
+                    for (int i = 1; i < new_args.size() - 1; i++) {
+                        auto arg = std::dynamic_pointer_cast<PairValue>(new_args[1])->getLeft();
+                        results.push_back(env.eval(arg));
+                    }
+                    if (results.empty()) {
+                        return std::make_shared<NilValue>();
+                    }
+                    else {
+                        return results.back();
+                    }
+                }
+                else {
+                    throw LispError("THe else is not in the last.");
+                }
+            }
+            else {
+            results.push_back(env.eval(new_args[0]));
+            if (change_to_bool(condition, env)) {
+                    for (int i = 1; i < new_args.size() - 1; i++) {
+                        auto arg = std::dynamic_pointer_cast<PairValue>(new_args[i])->getLeft();
+                        results.push_back(env.eval(arg));
+                    }
+                    return results.back();
+                }
+            }
+        }
+        return std::make_shared<NilValue>();
+    }
+}
+
 std::unordered_map<std::string, SpecialFormType*> SPECIAL_FORMS{
     {"define", defineForm},
     {"quote", quoteForm},
     {"if", ifForm},
     {"and", andForm},
     {"or", orForm}, 
-    {"lambda", lambdaForm}
+    {"lambda", lambdaForm}, 
+    {"cond", &condForm}
 };
