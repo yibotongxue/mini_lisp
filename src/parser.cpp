@@ -7,6 +7,9 @@
 
 #include "../include/parser.h"
 #include "../include/error.h"
+#include <iostream>
+
+Parser::Parser() : tokens { {} } {}
 
 Parser::Parser(std::deque<TokenPtr> tokens) : tokens { std::move(tokens) } {}
 
@@ -124,8 +127,15 @@ ValuePtr Parser::parseTails() {
     }
 }
 
+bool Parser::empty() const {
+    return tokens.empty();
+}
+
 void Parser::check() const {
     if (!tokens.empty()) {
-        throw SyntaxError("Unimplement.");
+        for (auto& token : tokens) {
+            std::cout << token->toString() << std::endl;
+        }
+        throw SyntaxError("Unimplement in parser.cpp, line 129.");
     }
 }

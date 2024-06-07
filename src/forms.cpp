@@ -22,13 +22,8 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
 
         auto second_Value = args[2];
 
-        if (true || !args[2]->isSymbol()) {
-            env.defineBinding(first_Name, env.eval(second_Value));
-        }
-        else {
-            env.defineBinding(first_Name, second_Value);
-        }
-
+        env.defineBinding(first_Name, env.eval(args[2]));
+        
         if (env.lookupBinding(first_Name)->getType() == ValueType::BUILTIN_PROC_VALUE) {
             innerSymbolTable.insert(std::make_pair(first_Name, std::dynamic_pointer_cast<BuiltinProcValue>(env.eval(std::make_shared<SymbolValue>(first_Name)))->getFunction()));
         }
@@ -36,24 +31,18 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
         return std::make_shared<NilValue>();
     }
     else if (std::dynamic_pointer_cast<PairValue>(args[1])->isList()) { // 定义函数
-        auto Pairptr = std::dynamic_pointer_cast<PairValue>(args[1]);
-        auto functionName_params = args[1];
-        if (functionName_params->isList()) {
-            auto functionName = std::dynamic_pointer_cast<PairValue>(functionName_params)->getLeft();
+        if (args[1]->isList()) {
+            auto functionName = std::dynamic_pointer_cast<PairValue>(args[1])->getLeft();
             std::vector<std::string> params{};
             if (functionName->isSymbol()) {
-                auto paramPtrs = functionName_params->toVector();
+                auto paramPtrs = args[1]->toVector();
                 for (int i = 1; i < static_cast<int>(paramPtrs.size()) - 1; i++) {
                     if (paramPtrs[i]->isSymbol()){
                         params.push_back(*paramPtrs[i]->asSymbol());
                     }
                 }
-                std::vector<ValuePtr> functionBody{};
-                for (int i = 2; i < static_cast<int>(args.size()) - 1; i++) {
-                    functionBody.push_back(args[i]);
-                }
+                std::vector<ValuePtr> functionBody{args.begin() + 2, args.end() - 1};
                 env.defineBinding(*functionName->asSymbol(), std::make_shared<LambdaValue>(params, functionBody, env.shared_from_this()));
-                // env.symbolList[*functionName->asSymbol()] = std::make_shared<LambdaValue>(params, functionBody);
                 return std::make_shared<NilValue>();
             }
             else {
@@ -243,30 +232,27 @@ ValuePtr letForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
                     throw LispError("The let form here need a list.");
                 }
             }
-            std::vector<ValuePtr> body{};
-            for (int i = 2; i < static_cast<int>(args.size()) - 1; i++) {
-                body.push_back(args[i]);
-            }
+            std::vector<ValuePtr> body{args.begin() + 2, args.end() - 1};
             auto lambda = std::make_shared<LambdaValue>(params, body, env.shared_from_this());
             return lambda->apply(new_args);
     }
 }
 
 namespace{
-    ValuePtr makeList(std::vector<ValuePtr>& vec, int start) {
-        if (vec.size() == 0) {
-            return std::make_shared<NilValue>();
-        }
-        else if(vec.size() == 1) {
-            return vec[0];
-        }
-        if (start == vec.size() - 2) {
-            return std::make_shared<PairValue>(vec[start], vec[start + 1]);
-        }
-        else {
-            return std::make_shared<PairValue>(vec[start], makeList(vec, start + 1));
-        }
+ValuePtr makeList(std::vector<ValuePtr>& vec, int start) {
+    if (vec.size() == 0) {
+        return std::make_shared<NilValue>();
     }
+    else if(vec.size() == 1) {
+        return vec[0];
+    }
+    if (start == vec.size() - 2) {
+        return std::make_shared<PairValue>(vec[start], vec[start + 1]);
+    }
+    else {
+        return std::make_shared<PairValue>(vec[start], makeList(vec, start + 1));
+    }
+}
 }
 
 ValuePtr quasiquoteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {

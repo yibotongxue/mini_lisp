@@ -1,9 +1,11 @@
 #include "../include/file.h"
 #include "../include/error.h"
 #include <fstream>
+#include <algorithm>
+#include <iterator>
 
-std::vector<std::string> File::readLines(const std::string& fileName) {
-    std::vector<std::string> lines{};
+std::deque<TokenPtr> File::readTokens() {
+    std::deque<TokenPtr> tokens{};
     std::ifstream file{ fileName };
 
     if (!file.is_open()) {
@@ -17,30 +19,28 @@ std::vector<std::string> File::readLines(const std::string& fileName) {
     std::string line;
     
     while(std::getline(file, line)) {
-        if (!line.empty())
-            lines.push_back(line);
+        auto lineTokens = Tokenizer::tokenize(line);
+        for (auto& token : lineTokens) {
+            tokens.push_back(std::move(token));
+        }
     }
 
-    if (lines.empty()) {
-        throw FileError("The file is empyt.");
-    }
-
-    return lines;
-}
-
-void File::carry(const std::string& line, std::shared_ptr<EvalEnv>& env) {
-    auto tokens = Tokenizer::tokenize(line);
-    Parser parser(std::move(tokens));
-    auto value = parser.parse();
-    parser.check();
-    env->eval(std::move(value));
+    return tokens;
 }
 
 void File::carryOut(std::shared_ptr<EvalEnv>& env) {
-    auto lines = readLines(fileName);
-    for (auto& line : lines) {
-        carry(line, env);
+    auto tokens = readTokens();
+    Parser parser(std::move(tokens));
+    while(!parser.empty()) {
+        auto value = parser.parse();
+        env->eval(std::move(value));
     }
+    parser.check();
+
+    // auto lines = readLines();
+    // for (auto& line : lines) {
+    //     carry(line, env);
+    // }
 }
 
 void File::carryOut(const std::string& fileName, std::shared_ptr<EvalEnv>& env) {

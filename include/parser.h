@@ -25,6 +25,8 @@ private:
     std::deque<TokenPtr> tokens;    // 一系列词法标记
 
 public:
+    Parser();
+
     /**
      * Paraser类的构造函数，从一系列词法标记构造
      * @param tokens: 一系列词法标记
@@ -41,6 +43,8 @@ public:
      * @return 如果词法标记为空，返回空表，否则返回对子
      */
     ValuePtr parseTails();
+
+    bool empty() const;
 
     void check() const;
 };

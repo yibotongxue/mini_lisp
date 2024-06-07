@@ -10,6 +10,8 @@
 #include "../include/eval_env.h"
 #include <iostream>
 #include <cmath>
+#include <iterator>
+#include <algorithm>
 
 namespace{
     void check_n_params(const std::vector<ValuePtr>& params, int n, const std::string& procedure) {
@@ -119,11 +121,8 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
     if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
         if (params[1]->isList() || params[1]->isNil()) {
             auto vec = params[1]->toVector();
-            std::vector<ValuePtr> args;
-            for (int i = 0; i < static_cast<int>(vec.size()) - 1; i++) {
-                args.push_back(vec[i]);
-            }
-            return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()(args, env);
+            vec.pop_back();
+            return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()(vec, env);
         }
         else {
             throw LispError("expected a list that can be applied on a procedure");
@@ -132,11 +131,8 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
     else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
         if (params[1]->isList()) {
             auto vec = params[1]->toVector();
-            std::vector<ValuePtr> args;
-            for (int i = 0; i < static_cast<int>(vec.size()) - 1; i++) {
-                args.push_back(vec[i]);
-            }
-            return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply(args);
+            vec.pop_back();
+            return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply(vec);
         }
         else {
             throw LispError("exprceted a list that can be applied on a procecure");
@@ -402,16 +398,13 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
     else {
         std::vector<ValuePtr> result{};
         for (int i = 0; i < static_cast<int>(params.size()) - 1; i++) {
-            if (params[i]->isList() || params[i]->isNil()) {
-               auto vec = params[i]->toVector();
-               for (int j = 0; j < vec.size(); j++) {
-                   if (j == static_cast<int>(vec.size()) - 1 && vec[j]->isNil()) {
-                           continue;
-                   }
-                   result.push_back(vec[j]);
-               }
+            if (params[i]->isList()) {
+                auto vec = params[i]->toVector();
+                if (vec.back()->isNil()) 
+                    vec.pop_back();
+                std::ranges::copy(vec, std::back_inserter(result));
             }
-            else {
+            else if (!params[i]->isNil()) {
                 std::cout << params[i]->toString() << std::endl;
                 throw LispError("The append procedure need a list param.");
             }
@@ -419,10 +412,7 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
         if (params.back()->isNil()) {
             result.push_back(params.back());
         }
-        auto vec = params.back()->toVector();
-        for (auto& ptr : vec) {
-            result.push_back(ptr);
-        }
+        std::ranges::copy(params.back()->toVector(), std::back_inserter(result));
         return makeList(result, 0);
     }
 }
@@ -516,11 +506,10 @@ ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
             std::vector<ValuePtr>result{};
             if (params[1]->isList()) {
                 auto vec = params[1]->toVector();
-                if (vec.size() > 0)
-                    result.push_back(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({vec[0]}, env));
-                for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
-                        result.push_back(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({vec[i]}, env));
-                }
+                vec.pop_back();
+                std::ranges::transform(vec, std::back_inserter(result), [&env, &params](ValuePtr& ptr) -> ValuePtr {
+                    return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({ptr}, env);
+                });
                 result.push_back(std::make_shared<NilValue>());
                 return makeList(result, 0);
             }
@@ -535,11 +524,10 @@ ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
             std::vector<ValuePtr> result{};
             if (params[1]->isList()) {
                 auto vec = params[1]->toVector();
-                if (vec.size() > 0)
-                    result.push_back(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({vec[0]}));
-                for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
-                        result.push_back(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({vec[i]}));
-                }
+                vec.pop_back();
+                std::ranges::transform(vec, std::back_inserter(result), [&params](ValuePtr& ptr) -> ValuePtr {
+                    return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({ptr});
+                }) ;
                 result.push_back(std::make_shared<NilValue>());
                 return makeList(result, 0);
             }
@@ -582,16 +570,10 @@ ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
             if (params[1]->isList()) {
                 std::vector<ValuePtr> result{};
                 auto vec = params[1]->toVector();
-                if (vec.size() > 0) {
-                    if (change_to_bool(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({vec[0]}, env))) {
-                        result.push_back(vec[0]);
-                    }
-                }
-                for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
-                        if (change_to_bool(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({vec[i]}, env))) {
-                            result.push_back(vec[i]);
-                        }
-                }
+                vec.pop_back();
+                std::ranges::copy_if(vec, std::back_inserter(result), [&env, &params](ValuePtr& ptr) -> bool {
+                    return change_to_bool(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({ptr}, env));
+                });
                 result.push_back(std::make_shared<NilValue>());
                 return makeList(result, 0);
             }
@@ -606,16 +588,10 @@ ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
             if (params[1]->isList()) {
                 std::vector<ValuePtr> result{};
                 auto vec = params[1]->toVector();
-                if (vec.size() > 0) {
-                    if (change_to_bool(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({vec[0]}))) {
-                        result.push_back(vec[0]);
-                    }
-                }
-                for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
-                        if (change_to_bool(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({vec[i]}))) {
-                            result.push_back(vec[i]);
-                        }
-                }
+                vec.pop_back();
+                std::ranges::copy_if(vec, std::back_inserter(result), [&params](ValuePtr& ptr) -> bool {
+                    return change_to_bool(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({ptr}));
+                });
                 result.push_back(std::make_shared<NilValue>());
                 return makeList(result, 0);
             }
