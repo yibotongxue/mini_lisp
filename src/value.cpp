@@ -244,10 +244,13 @@ std::vector<ValuePtr> SymbolValue::toVector() const {
 
 namespace{
     void backtracking(std::vector<ValuePtr>& vec, ValuePtr p) {
-        vec.push_back(p);
-        if (p->isList() && !p->isNil()) {
+        if (p->isList()) {
             auto pairP = std::dynamic_pointer_cast<PairValue>(p);
+            vec.push_back(pairP->getLeft());
             backtracking(vec, pairP->getRight());
+        }
+        else {
+            vec.push_back(p);
         }
     }
 }

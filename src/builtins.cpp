@@ -11,6 +11,39 @@
 #include <iostream>
 #include <cmath>
 
+namespace{
+    void check_n_params(const std::vector<ValuePtr>& params, int n, const std::string& procedure) {
+        if (params.size() != n) {
+            throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
+        }
+    }
+
+    void check_n_params_type(const std::vector<ValuePtr>& params, int n, const std::string& procedure, ValueType& type) {
+        if (params.size() != n) {
+            throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
+        }
+        for (int i = 0; i < params.size(); i++) {
+            if (params[i]->getType() != type) {
+                throw LispError("The " + procedure + " procedure cannot receive a non value.");
+            }
+        }
+    }
+
+    void check_two_numbers(const std::vector<ValuePtr>& params, const std::string& procedure) {
+        check_n_params(params, 2, procedure);
+        if (!params[0]->isNumber() || !params[1]->isNumber()) {
+            throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
+        }
+    }
+    
+    void check_one_number(const std::vector<ValuePtr>& params, const std::string& procedure) {
+        check_n_params(params, 1, procedure);
+        if (!params[0]->isNumber()) {
+            throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
+        }
+    }
+}
+
 ValuePtr add(const std::vector<ValuePtr>& params, EvalEnv&) {
     double result = 0;
     for (const auto& i :params) {
@@ -76,25 +109,19 @@ ValuePtr reduce(const std::vector<ValuePtr>& params, EvalEnv&) {
 }
 
 ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.size() == 1) {
-        throw LispError("A param is needed.");
-    }
-    if (params.size() > 2) {
-        throw LispError("The params are more than needed.");
-    }
+    check_n_params(params, 2, "apply");
+    // if (params.size() == 1) {
+    //     throw LispError("A param is needed.");
+    // }
+    // if (params.size() > 2) {
+    //     throw LispError("The params are more than needed.");
+    // }
     if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
         if (params[1]->isList() || params[1]->isNil()) {
             auto vec = params[1]->toVector();
             std::vector<ValuePtr> args;
-            if (vec.size() > 0)
-                args.push_back(vec[0]);
-            for (int i = 1; i < vec.size(); i++) {
-                if (vec[i]->isList()) {
-                    args.push_back(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft());
-                }
-                else if (!vec[i]->isNil()) {
-                    args.push_back(vec[i]);
-                }
+            for (int i = 0; i < static_cast<int>(vec.size()) - 1; i++) {
+                args.push_back(vec[i]);
             }
             return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()(args, env);
         }
@@ -106,15 +133,8 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
         if (params[1]->isList()) {
             auto vec = params[1]->toVector();
             std::vector<ValuePtr> args;
-            if (vec.size() > 0) 
-                    args.push_back(vec[0]);
-            for (int i = 1; i < vec.size(); i++) {
-                if (vec[i]->isList()) {
-                    args.push_back(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft());
-                }
-                else if (!vec[i]->isNil()) {
-                    args.push_back(vec[i]);
-                }
+            for (int i = 0; i < static_cast<int>(vec.size()) - 1; i++) {
+                args.push_back(vec[i]);
             }
             return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply(args);
         }
@@ -127,19 +147,20 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
-ValuePtr display(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.empty()) {
-        throw LispError("Need a param.");
-    }
-    if (params.size() > 1) {
-        throw LispError("Params should be only 1.");
-    }
-    auto param = env.eval(params[0]);
+ValuePtr display(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_n_params(params, 1, "display");
+    // if (params.empty()) {
+    //     throw LispError("Need a param.");
+    // }
+    // if (params.size() > 1) {
+    //     throw LispError("Params should be only 1.");
+    // }
+    auto param = params[0];
     if (param->getType() == ValueType::STRING_VALUE) {
         std::cout << std::dynamic_pointer_cast<StringValue>(params[0])->getValue() << std::endl;
     }
     else {
-        std::cout << "\'" << env.eval(param)->toString();
+        std::cout << "\'" << param->toString();
     }
     return std::make_shared<NilValue>();
 }
@@ -151,50 +172,29 @@ ValuePtr displayln(const std::vector<ValuePtr>& params, EvalEnv& env) {
 }
 
 ValuePtr error(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.size() == 0) {
-        throw LispError("error procedure need 1 param.");
-    }
-    else if (params.size() == 1) {
-        auto param = env.eval(params[0]);
-        if (param->getType() == ValueType::STRING_VALUE) {
-            throw LispError(std::dynamic_pointer_cast<StringValue>(param)->getValue());
-        }
-        else {
-            throw LispError("error procedure need string type param");
-        }
+    check_n_params(params, 1, "error");
+    auto param = env.eval(params[0]);
+    if (param->getType() == ValueType::STRING_VALUE) {
+        throw LispError(std::dynamic_pointer_cast<StringValue>(param)->getValue());
     }
     else {
-        throw LispError("More params than needed in error procedure.");
+        throw LispError("error procedure need string type param");
     }
 }
 
 ValuePtr eval(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.size() == 0) {
-        throw LispError("procedure eval need 1 param, given 0.");
-    }
-    else if (params.size() == 1) {
-        return env.eval(params[0]);
-    }
-    else {
-        throw LispError("procedure eval cannot receive more than 1 params.");
-    }
+    check_n_params(params, 1, "eval");
+    return env.eval(params[0]);
 }
 
 ValuePtr _exit(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.size() == 0) {
-        std::exit(0);
-    }
-    else if (params.size() == 1) {
-        auto param = env.eval(params[0]);
-        if (param->isNumber()) {
-            std::exit(*param->asNumber());
-        }
-        else {
-            throw LispError("params need to be a numeric value.");
-        }
+    check_n_params(params, 1, "exit");
+    auto param = env.eval(params[0]);
+    if (param->isNumber()) {
+        std::exit(*param->asNumber());
     }
     else {
-        throw LispError("params are more than needed.");
+        throw LispError("params need to be a numeric value.");
     }
 }
 
@@ -209,23 +209,16 @@ ValuePtr newline(const std::vector<ValuePtr>& params, EvalEnv&) {
 }
 
 ValuePtr atom(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The atom? procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->getType() == ValueType::BOOLEAN_VALUE ||
-            params[0]->getType() == ValueType::NUMERIC_VALUE ||
-            params[0]->getType() == ValueType::STRING_VALUE ||
-            params[0]->getType() == ValueType::SYMBOL_VALUE ||
-            params[0]->getType() == ValueType::NIL_VALUE) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    check_n_params(params, 1, "atom?");
+    if (params[0]->getType() == ValueType::BOOLEAN_VALUE ||
+        params[0]->getType() == ValueType::NUMERIC_VALUE ||
+        params[0]->getType() == ValueType::STRING_VALUE ||
+        params[0]->getType() == ValueType::SYMBOL_VALUE ||
+        params[0]->getType() == ValueType::NIL_VALUE) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The atom? procedure need only 1 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
@@ -411,13 +404,11 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
         for (int i = 0; i < static_cast<int>(params.size()) - 1; i++) {
             if (params[i]->isList() || params[i]->isNil()) {
                auto vec = params[i]->toVector();
-               if (vec.size() > 0) {
-                   result.push_back(vec[0]);
-               }
-               for (int j = 1; j < vec.size(); j++) {
-                   if (vec[j]->getType() == ValueType::PAIR_VALUE) {
-                       result.push_back(std::dynamic_pointer_cast<PairValue>(vec[j])->getLeft());
+               for (int j = 0; j < vec.size(); j++) {
+                   if (j == static_cast<int>(vec.size()) - 1 && vec[j]->isNil()) {
+                           continue;
                    }
+                   result.push_back(vec[j]);
                }
             }
             else {
@@ -430,12 +421,7 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
         }
         auto vec = params.back()->toVector();
         for (auto& ptr : vec) {
-            if (ptr->getType() == ValueType::PAIR_VALUE) {
-                result.push_back(std::dynamic_pointer_cast<PairValue>(ptr)->getLeft());
-            }
-            else {
-                result.push_back(ptr);
-            }
+            result.push_back(ptr);
         }
         return makeList(result, 0);
     }
@@ -533,9 +519,7 @@ ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
                 if (vec.size() > 0)
                     result.push_back(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({vec[0]}, env));
                 for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
-                    if (vec[i]->getType() == ValueType::PAIR_VALUE) {
-                        result.push_back(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}, env));
-                    }
+                        result.push_back(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({vec[i]}, env));
                 }
                 result.push_back(std::make_shared<NilValue>());
                 return makeList(result, 0);
@@ -554,9 +538,7 @@ ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
                 if (vec.size() > 0)
                     result.push_back(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({vec[0]}));
                 for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
-                    if (vec[i]->getType() == ValueType::PAIR_VALUE) {
-                        result.push_back(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}));
-                    }
+                        result.push_back(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({vec[i]}));
                 }
                 result.push_back(std::make_shared<NilValue>());
                 return makeList(result, 0);
@@ -606,11 +588,9 @@ ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
                     }
                 }
                 for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
-                    if (vec[i]->getType() == ValueType::PAIR_VALUE) {
-                        if (change_to_bool(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}, env))) {
-                            result.push_back(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft());
+                        if (change_to_bool(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({vec[i]}, env))) {
+                            result.push_back(vec[i]);
                         }
-                    }
                 }
                 result.push_back(std::make_shared<NilValue>());
                 return makeList(result, 0);
@@ -632,11 +612,9 @@ ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
                     }
                 }
                 for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
-                    if (vec[i]->getType() == ValueType::PAIR_VALUE) {
-                        if (change_to_bool(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()}))) {
-                            result.push_back(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft());
+                        if (change_to_bool(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({vec[i]}))) {
+                            result.push_back(vec[i]);
                         }
-                    }
                 }
                 result.push_back(std::make_shared<NilValue>());
                 return makeList(result, 0);
@@ -755,27 +733,27 @@ ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
-namespace{
-    void check_n_params(const std::vector<ValuePtr>& params, int n, const std::string& procedure) {
-        if (params.size() != n) {
-            throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
-        }
-    }
+// namespace{
+//     void check_n_params(const std::vector<ValuePtr>& params, int n, const std::string& procedure) {
+//         if (params.size() != n) {
+//             throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
+//         }
+//     }
 
-    void check_two_numbers(const std::vector<ValuePtr>& params, const std::string& procedure) {
-        check_n_params(params, 2, procedure);
-        if (!params[0]->isNumber() || !params[1]->isNumber()) {
-            throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
-        }
-    }
+//     void check_two_numbers(const std::vector<ValuePtr>& params, const std::string& procedure) {
+//         check_n_params(params, 2, procedure);
+//         if (!params[0]->isNumber() || !params[1]->isNumber()) {
+//             throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
+//         }
+//     }
     
-    void check_one_number(const std::vector<ValuePtr>& params, const std::string& procedure) {
-        check_n_params(params, 1, procedure);
-        if (!params[0]->isNumber()) {
-            throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
-        }
-    }
-}
+//     void check_one_number(const std::vector<ValuePtr>& params, const std::string& procedure) {
+//         check_n_params(params, 1, procedure);
+//         if (!params[0]->isNumber()) {
+//             throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
+//         }
+//     }
+// }
 
 ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_two_numbers(params, "expt");
@@ -859,7 +837,7 @@ namespace{
                 return std::dynamic_pointer_cast<BuiltinProcValue>(p1)->getFunction() == std::dynamic_pointer_cast<BuiltinProcValue>(p2)->getFunction();
             }
             else if (p1->getType() == ValueType::LAMBDA_VALUE) {
-                return &p1 == &p2;
+                return p1.get() == p2.get();
             }
             else {
                 throw LispError("Unimplement in equal?.");
@@ -869,94 +847,36 @@ namespace{
 }
 
 ValuePtr _eq(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.size() == 0) {
-        throw LispError("The eq? procedure need 2 params, given 0.");
+    check_n_params(params, 2, "eq?");
+    if (params[0]->isSelfEvaluating() && params[1]->isSelfEvaluating()) {
+        return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
     }
-    else if (params.size() == 1) {
-        throw LispError("The eq? procedure need 2 params, given 1.");
+    else if (params[0]->isSymbol() && params[1]->isSymbol()) {
+        std::cout << "Both symbol." << std::endl;
+        return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
     }
-    else if (params.size() == 2) {
-        if (params[0]->isSelfEvaluating() && params[1]->isSelfEvaluating()) {
-            return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
-        }
-        else if (params[0]->isSymbol() && params[1]->isSymbol()) {
-            std::cout << "Both symbol." << std::endl;
-            return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
-        }
-        else if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE && params[1]->getType() == ValueType::BUILTIN_PROC_VALUE) {
-            return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
-        }
-        else if (params[0]->getType() == ValueType::NIL_VALUE && params[1]->getType() == ValueType::NIL_VALUE) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        if (params[0].get() == params[1].get()) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    else if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE && params[1]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+        return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
+    }
+    else if (params[0]->getType() == ValueType::NIL_VALUE && params[1]->getType() == ValueType::NIL_VALUE) {
+        return std::make_shared<BooleanValue>(true);
+    }
+    if (params[0].get() == params[1].get()) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The eq? procedure need only 2 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
 ValuePtr _equal(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.size() == 0) {
-        throw LispError("The equal? procedure need 2 params, given 0.");
-    }
-    else if (params.size() == 1) {
-        throw LispError("The equal? procedure need 2 params, given 1.");
-    }
-    else if (params.size() == 2) {
-        if (params[0]->getType() != params[1]->getType()) {
-            return std::make_shared<BooleanValue>(false);
-        }
-        else {
-            if (params[0]->getType() == ValueType::BOOLEAN_VALUE) {
-                return std::make_shared<BooleanValue>(std::dynamic_pointer_cast<BooleanValue>(params[0])->getValue() == std::dynamic_pointer_cast<BooleanValue>(params[1])->getValue());
-            }
-            else if (params[0]->getType() == ValueType::NUMERIC_VALUE) {
-                return std::make_shared<BooleanValue>(std::dynamic_pointer_cast<NumericValue>(params[0])->getValue() == std::dynamic_pointer_cast<NumericValue>(params[1])->getValue());
-            }
-            else if (params[0]->getType() == ValueType::STRING_VALUE) {
-                return std::make_shared<BooleanValue>(std::dynamic_pointer_cast<StringValue>(params[0])->getValue() == std::dynamic_pointer_cast<StringValue>(params[1])->getValue());
-            }
-            else if (params[0]->getType() == ValueType::NIL_VALUE) {
-                return std::make_shared<BooleanValue>(true);
-            }
-            else if (params[0]->getType() == ValueType::SYMBOL_VALUE) {
-                return std::make_shared<BooleanValue>(std::dynamic_pointer_cast<SymbolValue>(params[0])->getName() == std::dynamic_pointer_cast<SymbolValue>(params[1])->getName());
-            }
-            else if (params[0]->getType() == ValueType::PAIR_VALUE) {
-                return std::make_shared<BooleanValue>(change_to_bool(_equal({car({params[0]}, env), car({params[1]}, env)}, env)) && change_to_bool(_equal({cdr({params[0]}, env), cdr({params[1]}, env)}, env)));
-            }
-            else if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
-                return std::make_shared<BooleanValue>(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction() == std::dynamic_pointer_cast<BuiltinProcValue>(params[1])->getFunction());
-            }
-            else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
-                return std::make_shared<BooleanValue>(&params[0] == &params[1]);
-            }
-            else {
-                throw LispError("Unimplement in equal?.");
-            }
-        }
-    }
-    else {
-        throw LispError("The equal? procedure need only 2 params.");
-    }
+    check_n_params(params, 2, "equal?");
+    return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
 }
 
 ValuePtr _not(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The not procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        return std::make_shared<BooleanValue>(!change_to_bool(params[0]));
-    }
-    else {
-        throw LispError("The not procedure need only 1 params.");
-    }
+    check_n_params(params, 1, "not");
+    return std::make_shared<BooleanValue>(!change_to_bool(params[0]));
 }
 
 ValuePtr __equal(const std::vector<ValuePtr>& params, EvalEnv&) {

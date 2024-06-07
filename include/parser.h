@@ -41,6 +41,8 @@ public:
      * @return 如果词法标记为空，返回空表，否则返回对子
      */
     ValuePtr parseTails();
+
+    void check() const;
 };
 
 #endif

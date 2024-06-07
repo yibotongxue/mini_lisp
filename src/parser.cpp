@@ -26,7 +26,7 @@ ValuePtr Parser::parse() {
     }
 
     auto token = std::move(tokens.front()); // 从 tokens 中获取第一个词法标记
-    tokens.pop_front(); // 益处已处理的词法标记
+    tokens.pop_front(); // 移除已处理的词法标记
 
     if(token->getType() == TokenType::NUMERIC_LITERAL) { // 如果词法标记是数值字面量
         auto value = static_cast<NumericLiteralToken&>(*token).getValue(); // 获取数值字面量的值
@@ -121,5 +121,11 @@ ValuePtr Parser::parseTails() {
     } else {
         auto cdr = this->parseTails(); //递归调用解析 S-表达式的函数获取右侧值
         return std::make_shared<PairValue>(car, cdr); // 返回构造的肚子类型值对象的共享指针
+    }
+}
+
+void Parser::check() const {
+    if (!tokens.empty()) {
+        throw SyntaxError("Unimplement.");
     }
 }

@@ -32,6 +32,7 @@ void File::carry(const std::string& line, std::shared_ptr<EvalEnv>& env) {
     auto tokens = Tokenizer::tokenize(line);
     Parser parser(std::move(tokens));
     auto value = parser.parse();
+    parser.check();
     env->eval(std::move(value));
 }
 

@@ -64,16 +64,15 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
             }
             else {
                 auto proc = eval(v[0]);
-                std::vector<ValuePtr> args = evalList(v[1]);
+                std::vector<ValuePtr> args = evalList(expr);
                 return apply(proc, args);
             }
         }
         else if (v[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
-            return std::dynamic_pointer_cast<BuiltinProcValue>(v[0])->getFunction()(evalList(v[1]), *this);
+            return std::dynamic_pointer_cast<BuiltinProcValue>(v[0])->getFunction()(evalList(expr), *this);
         }
         else if (v[0]->getType() == ValueType::LAMBDA_VALUE) {
-
-            return std::dynamic_pointer_cast<LambdaValue>(v[0])->apply(evalList(v[1]));
+            return std::dynamic_pointer_cast<LambdaValue>(v[0])->apply(evalList(expr));
         }
         else if (v[0]->isSelfEvaluating()) {
             throw LispError("Unimplement in eval_env.cpp, line 78");
@@ -97,7 +96,6 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         //         if (second_Value->isList() && std::dynamic_pointer_cast<PairValue>(second_Value)->getRight()->isNil()) {
         //             symbolList[first_Name] = eval(std::dynamic_pointer_cast<PairValue>(second_Value)->getLeft());
         //         }
-        //         else {
         //             symbolList[first_Name] = eval(second_Value);
         //         }
 
@@ -131,18 +129,8 @@ std::vector<ValuePtr>EvalEnv::evalList(ValuePtr expr) {
     std::vector<ValuePtr> vec = expr->toVector();
     if (vec.empty())
         return {};
-    result.push_back(eval(vec[0]));
-    for(int i = 1; i < vec.size(); i++) {
-        if (vec[i]->isList()) {
-            auto pairPtr = std::dynamic_pointer_cast<PairValue>(vec[i]);
-            if (pairPtr->getLeft()->isSymbol()) {
-                auto name = *pairPtr->getLeft()->asSymbol();
-            }
-            result.push_back(eval(std::dynamic_pointer_cast<PairValue>(vec[i])->getLeft()));
-        }
-        else if (!vec[i]->isNil()) {
-            result.push_back(eval(vec[i]));
-        }
+    for (int i = 1; i < vec.size() - 1; i++) {
+        result.push_back(eval(vec[i]));
     }
     return result;
 }
