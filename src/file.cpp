@@ -19,7 +19,7 @@ std::deque<TokenPtr> File::readTokens() {
     std::string line;
     
     while(std::getline(file, line)) {
-        auto lineTokens = Tokenizer::tokenize(line);
+        auto lineTokens = std::move(Tokenizer::tokenize(line));
         for (auto& token : lineTokens) {
             tokens.push_back(std::move(token));
         }

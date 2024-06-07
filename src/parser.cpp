@@ -9,7 +9,7 @@
 #include "../include/error.h"
 #include <iostream>
 
-Parser::Parser() : tokens { {} } {}
+Parser::Parser() : tokens {} {}
 
 Parser::Parser(std::deque<TokenPtr> tokens) : tokens { std::move(tokens) } {}
 
@@ -100,14 +100,9 @@ ValuePtr Parser::parseTails() {
     if (tokens.empty()) {
         throw SyntaxError("Unmatched parens");
     }
-    try{
-        if(tokens.front()->getType() == TokenType::RIGHT_PAREN) { // 如果下一个词法标记是右括号
-            tokens.pop_front(); // 移除右括号
-            return std::make_shared<NilValue>(); // 返回 空表类型值对象的共享指针
-        }
-    }
-    catch(...) {
-        throw SyntaxError("eof"); // 入股 tokens 一场为空，则抛出 eof 异常
+    if(tokens.front()->getType() == TokenType::RIGHT_PAREN) { // 如果下一个词法标记是右括号
+        tokens.pop_front(); // 移除右括号
+        return std::make_shared<NilValue>(); // 返回 空表类型值对象的共享指针
     }
     auto car = this->parse(); // 解析当前位置的值作为对子的左侧
     if (tokens.empty()) {

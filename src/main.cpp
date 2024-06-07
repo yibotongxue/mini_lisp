@@ -3,6 +3,7 @@
 
 #include <stdexcept>
 #include "../include/file.h"
+#include "../include/repl.h"
 #include "../src/rjsj_test.hpp"
 
 struct TestCtx {
@@ -23,17 +24,18 @@ int main(int argc, char** argv) {
         while (true) {
             try {
                 std::cout << ">>> " ;
-                std::string line;
-                std::getline(std::cin, line);
-                if (std::cin.eof()) {
-                    std::exit(0);
-                }
-                auto tokens = Tokenizer::tokenize(line);
-                Parser parser(std::move(tokens));
-                auto value = parser.parse();
-                parser.check();
-                auto result = env->eval(std::move(value));
-                std::cout << result->toString() << std::endl;
+                Repl().readInput(env);
+                // std::string line;
+                // std::getline(std::cin, line);
+                // if (std::cin.eof()) {
+                //     std::exit(0);
+                // }
+                // auto tokens = Tokenizer::tokenize(line);
+                // Parser parser(std::move(tokens));
+                // auto value = parser.parse();
+                // parser.check();
+                // auto result = env->eval(std::move(value));
+                // std::cout << result->toString() << std::endl;
             }
             catch (std::runtime_error& e) {
                 std::cerr << "Error: " << e.what() << std::endl;
