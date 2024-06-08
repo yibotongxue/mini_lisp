@@ -1,8 +1,10 @@
 #include "../include/repl.h"
+#include "../include/error.h"
 #include <iostream>
 #include <string>
 
-void Repl::readInput(std::shared_ptr<EvalEnv>& env) {
+std::deque<TokenPtr> Repl::readTokens() {
+    int leftParen{0}, rightParen{0};
     std::deque<TokenPtr> tokens{};
     while (true) {
         std::string line;
@@ -18,20 +20,27 @@ void Repl::readInput(std::shared_ptr<EvalEnv>& env) {
             else if (token->getType() == TokenType::RIGHT_PAREN) {
                 rightParen++;
             }
+            if (leftParen < rightParen) {
+                throw SyntaxError("Unmatched parens.");
+            }
             tokens.push_back(std::move(token));
         }
         if (tokens.back()->getType() != TokenType::QUOTE 
             && tokens.back()->getType() != TokenType::QUASIQUOTE 
             && tokens.back()->getType() != TokenType::UNQUOTE 
             && leftParen == rightParen) {
-                Parser parser(std::move(tokens));
-                while (!parser.empty()) {
-                    auto value = parser.parse();
-                    auto result = env->eval(value);
-                    std::cout << result->toString() << std::endl;
-                }
-                return;
+                return std::move(tokens);
         }
         std::cout << "... "; 
+    }
+}
+
+void Repl::carryOut(std::shared_ptr<EvalEnv>& env) {
+    auto tokens = Repl().readTokens();
+    Parser parser(std::move(tokens));
+    while(!parser.empty()) {
+        auto value = parser.parse();
+        auto result = env->eval(value);
+        std::cout << result->toString() << std::endl;
     }
 }

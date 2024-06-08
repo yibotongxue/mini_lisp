@@ -125,12 +125,3 @@ ValuePtr Parser::parseTails() {
 bool Parser::empty() const {
     return tokens.empty();
 }
-
-void Parser::check() const {
-    if (!tokens.empty()) {
-        for (auto& token : tokens) {
-            std::cout << token->toString() << std::endl;
-        }
-        throw SyntaxError("Unimplement in parser.cpp, line 129.");
-    }
-}

@@ -35,7 +35,6 @@ void File::carryOut(std::shared_ptr<EvalEnv>& env) {
         auto value = parser.parse();
         env->eval(std::move(value));
     }
-    parser.check();
 
     // auto lines = readLines();
     // for (auto& line : lines) {

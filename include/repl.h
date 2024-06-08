@@ -7,10 +7,10 @@
 
 class Repl {
 private:
-    int leftParen;
-    int rightParen;
+    Repl() = default;
+    std::deque<TokenPtr> readTokens();
 public:
-    void readInput(std::shared_ptr<EvalEnv>& env);
+    static void carryOut(std::shared_ptr<EvalEnv>& env);
 };
 
 #endif

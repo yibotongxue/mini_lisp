@@ -45,8 +45,6 @@ public:
     ValuePtr parseTails();
 
     bool empty() const;
-
-    void check() const;
 };
 
 #endif
