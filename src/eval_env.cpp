@@ -12,22 +12,41 @@
 
 using namespace std::literals;
 
+/**
+ * @brief 默认构造函数，创建一个空的求值环境。
+ */
 EvalEnv::EvalEnv() : symbolList{}, parent{nullptr} {
     for (auto& item : innerSymbolTable) {
         symbolList.insert(std::make_pair(item.first, std::make_shared<BuiltinProcValue>(item.second)));
     }
 }
 
+/**
+ * @brief 构造函数，创建一个带有父环境的求值环境。
+ * 
+ * @param ptr 父环境的指针
+ */
 EvalEnv::EvalEnv(std::shared_ptr<EvalEnv>& ptr) : symbolList{}, parent{ptr} {
     for (auto& item : innerSymbolTable) {
         symbolList.insert(std::make_pair(item.first, std::make_shared<BuiltinProcValue>(item.second)));
     }
 }
 
+/**
+ * @brief 创建一个新的求值环境。
+ * 
+ * @return 新的求值环境对象
+ */
 std::shared_ptr<EvalEnv> EvalEnv::createEvalEnv() {
     return std::make_shared<EvalEnv>(std::move(EvalEnv()));
 }
 
+/**
+ * @brief 创建一个带有父环境的新的求值环境。
+ * 
+ * @param ptr 父环境的指针
+ * @return 新的求值环境对象
+ */
 std::shared_ptr<EvalEnv> EvalEnv::createEvalEnv(std::shared_ptr<EvalEnv>& ptr)  {
     EvalEnv env(ptr);
     return std::make_shared<EvalEnv>(std::move(EvalEnv(ptr)));
@@ -80,37 +99,6 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
         else {
             return eval(std::make_shared<PairValue>(eval(v[0]), std::dynamic_pointer_cast<PairValue>(expr)->getRight()));
         }
-        // else {
-        //     throw LispError("Unimplement");
-        // }
-
-        // // 根据列表的首元素执行不同的操作
-        // if (v[0]->asSymbol() == "define"s) {
-        //     // 如果是 define 操作符，则进行定义操作
-        //     if (auto name = v[1]->asSymbol()) {
-        //         // 获取定义名称
-        //         auto first_Name = std::dynamic_pointer_cast<SymbolValue>(v[1])->getName();
-
-        //         auto second_Value = v[2];
-
-        //         if (second_Value->isList() && std::dynamic_pointer_cast<PairValue>(second_Value)->getRight()->isNil()) {
-        //             symbolList[first_Name] = eval(std::dynamic_pointer_cast<PairValue>(second_Value)->getLeft());
-        //         }
-        //             symbolList[first_Name] = eval(second_Value);
-        //         }
-
-        //         if(symbolList[first_Name]->getType() == ValueType::BUILTIN_PROC_VALUE) {
-        //             pairParser.add(first_Name);
-        //         }
-
-        //         // 返回空表表示成功
-        //         return std::make_shared<NilValue>();
-        //     }
-        //     else {
-        //         // define 操作符形式错误，抛出异常
-        //         throw LispError("Malformed define.");
-        //     }
-        // }
     }
     else if (expr->isSymbol()) {
         // 如果表达式是符号类型，则查找并返回符号对应的值
@@ -124,6 +112,12 @@ ValuePtr EvalEnv::eval(ValuePtr expr) {
     }
 }
 
+/**
+ * @brief 对表达式列表进行求值。
+ * 
+ * @param expr 表达式
+ * @return 求值结果的向量
+ */
 std::vector<ValuePtr>EvalEnv::evalList(ValuePtr expr) {
     std::vector<ValuePtr> result;
     std::vector<ValuePtr> vec = expr->toVector();
@@ -135,6 +129,13 @@ std::vector<ValuePtr>EvalEnv::evalList(ValuePtr expr) {
     return result;
 }
 
+/**
+ * @brief 应用过程，执行函数或内置过程。
+ * 
+ * @param proc 过程对象
+ * @param args 参数列表
+ * @return 执行结果
+ */
 ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr>& args) {
     if (proc->getType() == ValueType::BUILTIN_PROC_VALUE) {
         return std::dynamic_pointer_cast<BuiltinProcValue>(proc)->getFunction()(args, *this);
@@ -147,6 +148,12 @@ ValuePtr EvalEnv::apply(ValuePtr proc, std::vector<ValuePtr>& args) {
     }
 }
 
+/**
+ * @brief 查找绑定的值。
+ * 
+ * @param name 符号名称
+ * @return 绑定的值
+ */
 ValuePtr EvalEnv::lookupBinding(const std::string& name) {
     if (symbolList.find(name) != symbolList.end()) {
         return symbolList[name];
@@ -157,6 +164,13 @@ ValuePtr EvalEnv::lookupBinding(const std::string& name) {
         throw LispError("Variable " + name + " not defined.");
 }
 
+/**
+ * @brief 定义绑定。
+ * 
+ * @param name 符号名称
+ * @param ptr 值对象指针
+ * @return 定义的值
+ */
 ValuePtr EvalEnv::defineBinding(const std::string& name, ValuePtr ptr) {
     symbolList[name] = ptr;
     if (parent)
@@ -164,6 +178,13 @@ ValuePtr EvalEnv::defineBinding(const std::string& name, ValuePtr ptr) {
     return std::make_shared<NilValue>();
 }
 
+/**
+ * @brief 创建子环境。
+ * 
+ * @param params 参数列表
+ * @param args 参数值列表
+ * @return 子环境对象
+ */
 std::shared_ptr<EvalEnv> EvalEnv::createChild(const std::vector<std::string>& params, const std::vector<ValuePtr>& args) {
     auto env = EvalEnv::createEvalEnv();
     if (params.size() < args.size()) {

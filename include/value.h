@@ -129,6 +129,11 @@ public:
     */
     bool isSymbol() const;
 
+    /**
+     * @brief 这是一个判断值是否为数的函数
+     * 
+     * @return 返回的是 bool 类型，如果值是数类型，则返回 true， 否则返回 false。
+     */
     bool isNumber() const;
 
     /**
@@ -142,8 +147,26 @@ public:
     */
     virtual std::optional<std::string> asSymbol() const;
 
+    /**
+     * @brief 这个函数用来获取值的数
+     * 
+     * @return 如果这个值是一个数，则返回值的 value ，否则返回 std::nullopt
+     * 
+     * @note 这是一个虚函数，调用时会判断调用对象的类型
+     * 
+     * @note 这是一个只读函数，执行时不改变对象的内容
+     */
     virtual std::optional<double> asNumber() const;
 
+    /**
+     * @brief 这是一个将 Value 对象转换为向量的函数
+     * 
+     * @return 返回的是 std::vector 类型，将对象转换为向量，如果是列表，则返回列表的向量，否则返回对像组成的向量
+     * 
+     * @note 这个函数是个纯虚函数，不同类型的值会有不同的得到外部表示的方法，派生类必须实现这个函数
+     * 
+     * @note 这个函数是一个只读函数，执行过程不会改变对象的内容
+    */
     virtual std::vector<ValuePtr> toVector() const = 0;
 };
 
@@ -403,6 +426,11 @@ public:
     */
     virtual std::string toString() const override;
 
+    /**
+     * @brief 获取空表的向量表示的函数
+     * 
+     * @return 返回空的向量
+     */
     virtual std::vector<ValuePtr> toVector() const override;
 };
 
@@ -477,6 +505,11 @@ public:
     */
     virtual std::optional<std::string> asSymbol() const override;
 
+    /**
+     * @brief 获取符号类型的向量表示的函数
+     * 
+     * @return 返回仅有符号对象构成的向量
+     */
     virtual std::vector<ValuePtr> toVector() const override;
 };
 
@@ -568,42 +601,105 @@ public:
     */
     virtual std::string toString() const override;
 
+    /**
+     * @brief 获取对子类型的向量表示的函数
+     * 
+     * @return 返回对子的向量表示，如果是列表类型，则返回列表的向量，否则返回仅有对子的向量
+     */
     virtual std::vector<ValuePtr> toVector() const override;
 };
 
 class EvalEnv;
 
-using BuiltinFuncType = ValuePtr(const std::vector<ValuePtr>&, EvalEnv&);
+using BuiltinFuncType = ValuePtr(const std::vector<ValuePtr>&, EvalEnv&); // 内置过程的函数指针
 
+/**
+ * @brief BuiltinProcValue类表示Mini-Lisp中的内置过程（Builtin Procedure）。
+ * 
+ * 内置过程是一类特殊的函数，通常是由编译器或解释器提供的，用于执行一些基本操作，
+ * 如数学运算、类型转换等。BuiltinProcValue类继承自Value类，作为Mini-Lisp中内置过程的表示。
+ */
 class BuiltinProcValue : public Value {
 private:
-    BuiltinFuncType* func;
+    BuiltinFuncType* func; // 内置过程的函数指针
 
 public:
+    /**
+     * @brief 构造函数，创建内置过程对象。
+     * 
+     * @param ptr 内置过程的函数指针
+     */
     BuiltinProcValue(BuiltinFuncType* ptr) : Value{ValueType::BUILTIN_PROC_VALUE}, func{ptr} {}
 
+    /**
+     * @brief 将内置过程对象转换为字符串表示。
+     * 
+     * @return 内置过程的字符串表示
+     */
     virtual std::string toString() const override;
 
+    /**
+     * @brief 获取内置过程的函数指针。
+     * 
+     * @return 内置过程的函数指针
+     */
     BuiltinFuncType* getFunction() const {
         return func;
     }
 
+    /**
+     * @brief 将内置过程对象转换为向量表示。
+     * 
+     * @return 包含函数指针的向量
+     */
     virtual std::vector<ValuePtr> toVector() const override;
 };
 
+/**
+ * @brief LambdaValue类表示Mini-Lisp中的Lambda函数。
+ * 
+ * Lambda函数是一种匿名函数，由参数列表和函数体组成。它可以在运行时动态创建，
+ * 并且可以捕获外部环境中的变量。LambdaValue类继承自Value类，作为Mini-Lisp中
+ * Lambda函数的表示。
+ * 
+ * @note Lambda函数的apply方法用于应用Lambda函数，传入参数并执行函数体。
+ */
 class LambdaValue : public Value {
 private:
-    std::vector<std::string> params;
-    std::vector<ValuePtr> body;
-    std::shared_ptr<EvalEnv> parent;
+    std::vector<std::string> params; // 参数列表
+    std::vector<ValuePtr> body; // 函数体
+    std::shared_ptr<EvalEnv> parent; // 外部环境
 
 public:
+    /**
+     * @brief 构造函数，创建Lambda函数对象。
+     * 
+     * @param params 参数列表
+     * @param body 函数体
+     * @param env 外部环境
+     */
     LambdaValue(const std::vector<std::string>& params, const std::vector<ValuePtr>& body, std::shared_ptr<EvalEnv> env);
 
+    /**
+     * @brief 获取Lambda函数对象的外部表示
+     * 
+     * @return Lambda函数的外部表示
+     */
     virtual std::string toString() const override;
 
+    /**
+     * @brief 将Lambda函数对象转换为向量表示。
+     * 
+     * @return 仅包含Lambda对象的向量
+     */
     virtual std::vector<ValuePtr> toVector() const override;
 
+    /**
+     * @brief 应用Lambda函数，传入参数并执行函数体。
+     * 
+     * @param args 参数列表
+     * @return 执行结果
+     */
     ValuePtr apply(const std::vector<ValuePtr>& args);
 };
 

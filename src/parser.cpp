@@ -9,8 +9,14 @@
 #include "../include/error.h"
 #include <iostream>
 
+/**
+ * @brief 类 Parser 的默认构造函数
+ */
 Parser::Parser() : tokens {} {}
 
+/**
+ * @brief lei Parser 的构造函数，从给定的分词组构造
+ */
 Parser::Parser(std::deque<TokenPtr> tokens) : tokens { std::move(tokens) } {}
 
 /**

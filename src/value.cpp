@@ -42,14 +42,22 @@ bool Value::isSelfEvaluating() const {
 }
 
 namespace{
-    Value* getRightOne(Value* ptr) {
-        if (ptr->getType() != ValueType::PAIR_VALUE) {
-            return ptr;
-        }
-        else {
-            return getRightOne(dynamic_cast<PairValue*>(ptr)->getRight().get());
-        }
+/**
+ * @brief 递归函数，用于获取对子中最右侧的值。
+ * 
+ * 如果传入的指针不是对子类型，直接返回该指针；否则，递归地获取对子的右侧值。
+ * 
+ * @param ptr 要处理的Value指针
+ * @return 如果ptr不是对子类型，返回ptr；否则返回对子的最右侧值。
+ */
+Value* getRightOne(Value* ptr) {
+    if (ptr->getType() != ValueType::PAIR_VALUE) {
+        return ptr;
     }
+    else {
+        return getRightOne(dynamic_cast<PairValue*>(ptr)->getRight().get());
+    }
+}
 }
 
 /**
@@ -78,6 +86,13 @@ bool Value::isSymbol() const {
     return false;
 }
 
+/**
+ * @brief 判断值是否为数类型的函数
+ * 
+ * @return 如果值的类型是数类型，则返回 true；否则返回 false。
+ * 
+ * @note 这是一个只读函数，不会改变对象的内容。
+ */
 bool Value::isNumber() const {
     if (type == ValueType::NUMERIC_VALUE) 
         return true;
@@ -102,10 +117,20 @@ std::optional<std::string> SymbolValue::asSymbol() const {
     return { name };
 }
 
+/**
+ * @brief 将值作为数返回，这里处理不是数的情况
+ * 
+ * @return 返回 std::nullopt
+*/
 std::optional<double> Value::asNumber() const {
     return std::nullopt;
 }
 
+/**
+ * @brief 将值作为数返回，这里处理值类型就是数类型的情况
+ * 
+ * @return 返回用数的值构造的 std::optional<double> 对象
+*/
 std::optional<double> NumericValue::asNumber() const {
     return { value };
 }
@@ -214,62 +239,129 @@ std::string PairValue::toString() const {
     return result; // 返回字符串表示
 }
 
+/**
+ * @brief 获取内置过程的外部表示的函数
+ * 
+ * @return 返回 #<procedure>
+*/
 std::string BuiltinProcValue::toString() const {
     return "#<procedure>";
 }
 
+/**
+ * @brief 获取 lambda 表达式的外部表示的函数
+ * 
+ * @return 返回 #<procedure>
+*/
 std::string LambdaValue::toString() const {
     return "#<procedure>";
 }
 
+/**
+ * @brief 将BooleanValue转换为包含自身的向量。
+ * 
+ * @return 含有BooleanValue的向量
+ */
 std::vector<ValuePtr> BooleanValue::toVector() const {
     return { std::make_shared<BooleanValue>(*this) };
 }
 
+/**
+ * @brief 将NumericValue转换为包含自身的向量。
+ * 
+ * @return 含有NumericValue的向量
+ */
 std::vector<ValuePtr> NumericValue::toVector() const {
     return { std::make_shared<NumericValue>(*this) };
 }
 
+/**
+ * @brief 将StringValue转换为包含自身的向量。
+ * 
+ * @return 含有StringValue的向量
+ */
 std::vector<ValuePtr> StringValue::toVector() const {
     return { std::make_shared<StringValue>(*this) };
 }
 
+/**
+ * @brief 将NilValue转换为空向量。
+ * 
+ * @return 空向量
+ */
 std::vector<ValuePtr> NilValue::toVector() const {
     return {};
 }
 
+/**
+ * @brief 将SymbolValue转换为包含自身的向量。
+ * 
+ * @return 含有SymbolValue的向量
+ */
 std::vector<ValuePtr> SymbolValue::toVector() const {
     return { std::make_shared<SymbolValue>(*this) };
 }
 
 namespace{
-    void backtracking(std::vector<ValuePtr>& vec, ValuePtr p) {
-        if (p->isList()) {
-            auto pairP = std::dynamic_pointer_cast<PairValue>(p);
-            vec.push_back(pairP->getLeft());
-            backtracking(vec, pairP->getRight());
-        }
-        else {
-            vec.push_back(p);
-        }
+/**
+ * @brief 递归函数，用于构建一个列表（PairValue）。
+ * 
+ * @param vec 包含要构建列表的元素的向量
+ * @param p 当前处理的值
+ */
+void backtracking(std::vector<ValuePtr>& vec, ValuePtr p) {
+    if (p->isList()) {
+        auto pairP = std::dynamic_pointer_cast<PairValue>(p);
+        vec.push_back(pairP->getLeft());
+        backtracking(vec, pairP->getRight());
+    }
+    else {
+        vec.push_back(p);
+    }
+}
+}
+
+/**
+ * @brief 将PairValue转换为包含自身的向量。
+ * 
+ * @return 含有PairValue的向量
+ */
+std::vector<ValuePtr> PairValue::toVector() const {
+    if (isList()) {
+        std::vector<ValuePtr> result{};
+        result.push_back(left);
+        backtracking(result, right);
+        return result;
+    }
+    else {
+        return { std::make_shared<PairValue>(*this) };
     }
 }
 
-std::vector<ValuePtr> PairValue::toVector() const {
-    std::vector<ValuePtr> result{};
-    result.push_back(left);
-    backtracking(result, right);
-    return result;
-}
-
+/**
+ * @brief 将BuiltinProcValue转换为包含自身的向量。
+ * 
+ * @return 含有BuiltinProcValue的向量
+ */
 std::vector<ValuePtr> BuiltinProcValue::toVector() const {
     return { std::make_shared<BuiltinProcValue>(*this) };
 }
 
+/**
+ * @brief 将LambdaValue转换为包含自身的向量。
+ * 
+ * @return 含有LambdaValue的向量
+ */
 std::vector<ValuePtr> LambdaValue::toVector() const {
     return { std::make_shared<LambdaValue>(*this) };
 }
 
+/**
+ * @brief 执行Lambda函数，应用参数并返回结果。
+ * 
+ * @param args 参数列表
+ * @return Lambda函数的执行结果
+ */
 ValuePtr LambdaValue::apply(const std::vector<ValuePtr>& args) {
     auto env = parent->createChild(params, args);
     if (body.empty()) {

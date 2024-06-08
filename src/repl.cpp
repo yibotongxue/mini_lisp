@@ -3,6 +3,12 @@
 #include <iostream>
 #include <string>
 
+/**
+ * @brief 从标准输入读取Token并构建Token队列。
+ * 
+ * @return Token队列
+ * @throws SyntaxError 如果括号不匹配
+ */
 std::deque<TokenPtr> Repl::readTokens() {
     int leftParen{0}, rightParen{0};
     std::deque<TokenPtr> tokens{};
@@ -35,6 +41,11 @@ std::deque<TokenPtr> Repl::readTokens() {
     }
 }
 
+/**
+ * @brief 执行REPL中的表达式。
+ * 
+ * @param env 求值环境
+ */
 void Repl::carryOut(std::shared_ptr<EvalEnv>& env) {
     auto tokens = Repl().readTokens();
     Parser parser(std::move(tokens));

@@ -14,38 +14,77 @@
 #include <algorithm>
 
 namespace{
-    void check_n_params(const std::vector<ValuePtr>& params, int n, const std::string& procedure) {
-        if (params.size() != n) {
-            throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
-        }
+/**
+ * @brief 检查参数数量是否匹配预期值。
+ * 
+ * @param params 参数向量
+ * @param n 预期的参数数量
+ * @param procedure 正在检查的过程名称
+ * @throws LispError 如果参数数量不匹配
+ */
+void check_n_params(const std::vector<ValuePtr>& params, int n, const std::string& procedure) {
+    if (params.size() != n) {
+        throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
     }
+}
 
-    void check_n_params_type(const std::vector<ValuePtr>& params, int n, const std::string& procedure, ValueType& type) {
-        if (params.size() != n) {
-            throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
-        }
-        for (int i = 0; i < params.size(); i++) {
-            if (params[i]->getType() != type) {
-                throw LispError("The " + procedure + " procedure cannot receive a non value.");
-            }
-        }
+/**
+ * @brief 检查参数类型是否与预期类型匹配。
+ * 
+ * @param params 参数向量
+ * @param n 预期的参数数量
+ * @param procedure 正在检查的过程名称
+ * @param type 预期的值类型
+ * @throws LispError 如果参数数量或类型不匹配
+ */
+void check_n_params_type(const std::vector<ValuePtr>& params, int n, const std::string& procedure, ValueType& type) {
+    if (params.size() != n) {
+        throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
     }
-
-    void check_two_numbers(const std::vector<ValuePtr>& params, const std::string& procedure) {
-        check_n_params(params, 2, procedure);
-        if (!params[0]->isNumber() || !params[1]->isNumber()) {
-            throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
-        }
-    }
-    
-    void check_one_number(const std::vector<ValuePtr>& params, const std::string& procedure) {
-        check_n_params(params, 1, procedure);
-        if (!params[0]->isNumber()) {
-            throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
+    for (int i = 0; i < params.size(); i++) {
+        if (params[i]->getType() != type) {
+            throw LispError("The " + procedure + " procedure cannot receive a non value.");
         }
     }
 }
 
+/**
+ * @brief 检查是否为两个参数，以及两个参数是否为数值。
+ * 
+ * @param params 参数向量
+ * @param procedure 正在检查的过程名称
+ * @throws LispError 如果参数不是数值或参数数目不是两个
+ */
+void check_two_numbers(const std::vector<ValuePtr>& params, const std::string& procedure) {
+    check_n_params(params, 2, procedure);
+    if (!params[0]->isNumber() || !params[1]->isNumber()) {
+        throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
+    }
+}
+
+/**
+ * @brief 检查是否为一个参数，以及一个参数是否为数值。
+ * 
+ * @param params 参数向量
+ * @param procedure 正在检查的过程名称
+ * @throws LispError 如果参数不是数值或参数数目不是一个
+ */
+void check_one_number(const std::vector<ValuePtr>& params, const std::string& procedure) {
+    check_n_params(params, 1, procedure);
+    if (!params[0]->isNumber()) {
+        throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
+    }
+}
+}
+
+/**
+ * @brief 实现加法操作，将多个数值相加并返回结果。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 加法结果
+ * @throws LispError 如果参数包含非数值
+ */
 ValuePtr add(const std::vector<ValuePtr>& params, EvalEnv&) {
     double result = 0;
     for (const auto& i :params) {
@@ -59,6 +98,13 @@ ValuePtr add(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<NumericValue>(result);
 }
 
+/**
+ * @brief 实现打印操作，将参数的字符串表示输出到标准输出。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 空值
+ */
 ValuePtr print(const std::vector<ValuePtr>& params, EvalEnv&) {
     for (const auto& param : params) {
         std::cout << param->toString();
@@ -66,6 +112,14 @@ ValuePtr print(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<NilValue>();
 }
 
+/**
+ * @brief 实现乘法操作，将多个数值相乘并返回结果。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 乘法结果
+ * @throws LispError 如果参数包含非数值
+ */
 ValuePtr multiply(const std::vector<ValuePtr>& params, EvalEnv&) {
     double result = 1;
     for (const auto& i : params) {
@@ -79,6 +133,14 @@ ValuePtr multiply(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<NumericValue>(result);
 }
 
+/**
+ * @brief 实现减法操作，将多个数值依次相减并返回结果。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 减法结果
+ * @throws LispError 如果参数包含非数值
+ */
 ValuePtr reduce(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("Less params than needed.");
@@ -110,14 +172,16 @@ ValuePtr reduce(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现apply操作，将参数应用于过程并返回结果。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境
+ * @return 过程的执行结果
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
     check_n_params(params, 2, "apply");
-    // if (params.size() == 1) {
-    //     throw LispError("A param is needed.");
-    // }
-    // if (params.size() > 2) {
-    //     throw LispError("The params are more than needed.");
-    // }
     if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
         if (params[1]->isList() || params[1]->isNil()) {
             auto vec = params[1]->toVector();
@@ -143,14 +207,15 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+/**
+ * @brief 实现display操作，将参数的字符串表示输出到标准输出。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 空值
+ */
 ValuePtr display(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_n_params(params, 1, "display");
-    // if (params.empty()) {
-    //     throw LispError("Need a param.");
-    // }
-    // if (params.size() > 1) {
-    //     throw LispError("Params should be only 1.");
-    // }
     auto param = params[0];
     if (param->getType() == ValueType::STRING_VALUE) {
         std::cout << std::dynamic_pointer_cast<StringValue>(params[0])->getValue() << std::endl;
@@ -161,12 +226,27 @@ ValuePtr display(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<NilValue>();
 }
 
+/**
+ * @brief 实现displayln操作，将参数的字符串表示输出到标准输出并换行。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境
+ * @return 空值
+ */
 ValuePtr displayln(const std::vector<ValuePtr>& params, EvalEnv& env) {
     display(params, env);
     std::cout << std::endl;
     return std::make_shared<NilValue>();
 }
 
+/**
+ * @brief 实现`error`操作，根据参数抛出LispError异常。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境
+ * @return 无返回值
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr error(const std::vector<ValuePtr>& params, EvalEnv& env) {
     check_n_params(params, 1, "error");
     auto param = env.eval(params[0]);
@@ -178,11 +258,27 @@ ValuePtr error(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+/**
+ * @brief 实现`eval`操作，对参数进行求值并返回结果。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境
+ * @return 参数的求值结果
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr eval(const std::vector<ValuePtr>& params, EvalEnv& env) {
     check_n_params(params, 1, "eval");
     return env.eval(params[0]);
 }
 
+/**
+ * @brief 实现`_exit`操作，根据参数退出程序。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境
+ * @return 无返回值
+ * @throws LispError 如果参数不是数值
+ */
 ValuePtr _exit(const std::vector<ValuePtr>& params, EvalEnv& env) {
     check_n_params(params, 1, "exit");
     auto param = env.eval(params[0]);
@@ -194,6 +290,14 @@ ValuePtr _exit(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+/**
+ * @brief 实现`newline`操作，输出换行符。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 空值
+ * @throws LispError 如果参数不为空
+ */
 ValuePtr newline(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.empty()) {
         std::cout << std::endl;
@@ -204,6 +308,14 @@ ValuePtr newline(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`atom`操作，判断参数是否为原子值。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是原子值，返回true；否则返回false
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr atom(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_n_params(params, 1, "atom?");
     if (params[0]->getType() == ValueType::BOOLEAN_VALUE ||
@@ -218,6 +330,14 @@ ValuePtr atom(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`boolean`操作，判断参数是否为布尔值。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是布尔值，返回true；否则返回false
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr boolean(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The boolean? procedure need 1 params.");
@@ -235,6 +355,14 @@ ValuePtr boolean(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`integer`操作，判断参数是否为整数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是整数，返回true；否则返回false
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr integer(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The integer? procedure need 1 params.");
@@ -252,6 +380,14 @@ ValuePtr integer(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`list`操作，判断参数是否为列表。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是列表或空表，返回true；否则返回false
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr list(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The list? procedure need 1 params.");
@@ -269,6 +405,14 @@ ValuePtr list(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`number`操作，判断参数是否为数值。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是数值，返回true；否则返回false
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr number(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The number? procedure need 1 params.");
@@ -286,6 +430,14 @@ ValuePtr number(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`null`操作，判断参数是否为空表。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是空表，返回true；否则返回false
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr null(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The null? procedure need 1 params.");
@@ -303,6 +455,14 @@ ValuePtr null(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`pair`操作，判断参数是否为非空列表。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是非空列表，返回true；否则返回false
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr _pair(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The pair? procedure need 1 params.");
@@ -320,6 +480,14 @@ ValuePtr _pair(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`isProcedure`操作，判断参数是否为过程（内置过程或Lambda函数）。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是过程，返回true；否则返回false
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr isProcedure(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("THe procedure? procedure need 1 params.");
@@ -337,6 +505,14 @@ ValuePtr isProcedure(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`isString`操作，判断参数是否为字符串。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是字符串，返回true；否则返回false
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr isString(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The string? procedure need 1 params.");
@@ -354,6 +530,14 @@ ValuePtr isString(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`isSymbol`操作，判断参数是否为符号。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是符号，返回true；否则返回false
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr isSymbol(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The symbol? procedure need 1 params.");
@@ -372,22 +556,37 @@ ValuePtr isSymbol(const std::vector<ValuePtr>& params, EvalEnv&) {
 }
 
 namespace{
-    ValuePtr makeList(std::vector<ValuePtr>& vec, int start) {
-        if (vec.size() == 0) {
-            return std::make_shared<NilValue>();
-        }
-        else if(vec.size() == 1) {
-            return vec[0];
-        }
-        if (start == vec.size() - 2) {
-            return std::make_shared<PairValue>(vec[start], vec[start + 1]);
-        }
-        else {
-            return std::make_shared<PairValue>(vec[start], makeList(vec, start + 1));
-        }
+/**
+ * @brief 实现`makeList`操作，根据参数向量构建一个列表。
+ * 
+ * @param vec 参数向量
+ * @param start 起始索引
+ * @return 构建的列表
+ */
+ValuePtr makeList(std::vector<ValuePtr>& vec, int start) {
+    if (vec.size() == 0) {
+        return std::make_shared<NilValue>();
+    }
+    else if(vec.size() == 1) {
+        return vec[0];
+    }
+    if (start == vec.size() - 2) {
+        return std::make_shared<PairValue>(vec[start], vec[start + 1]);
+    }
+    else {
+        return std::make_shared<PairValue>(vec[start], makeList(vec, start + 1));
     }
 }
+}
 
+/**
+ * @brief 实现`append`操作，将多个列表连接成一个新的列表。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 连接后的列表
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         return std::make_shared<NilValue>();
@@ -417,6 +616,14 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`car`操作，获取列表的第一个元素。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 列表的第一个元素
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr car(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The car procedure need 1 params.");
@@ -434,6 +641,14 @@ ValuePtr car(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`cdr`操作，获取列表的剩余部分（除第一个元素）。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 列表的剩余部分
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr cdr(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("THe cdr procedure need 1 params.");
@@ -451,6 +666,14 @@ ValuePtr cdr(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`cons`操作，将两个参数构建成一个新的列表。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 构建的列表
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr cons(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The cons procedure need 2 params, given 0.");
@@ -466,6 +689,14 @@ ValuePtr cons(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`length`操作，计算列表的长度。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 列表的长度
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr length(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The length proceduren need 1 params.");
@@ -488,12 +719,27 @@ ValuePtr length(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现`_list`操作，将参数构建成一个新的列表。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 构建的列表
+ */
 ValuePtr _list(const std::vector<ValuePtr>& params, EvalEnv&) {
     std::vector<ValuePtr> new_params{params};
     new_params.push_back(std::make_shared<NilValue>());
     return makeList(new_params, 0);
 }
 
+/**
+ * @brief 实现`_map`操作，将过程应用于列表的每个元素。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境
+ * @return 应用过程后的列表
+ * @throws LispError 如果参数不符合预期
+ */
 ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
     if (params.size() == 0) {
         throw LispError("The map procedure need 2 params, given 0.");
@@ -548,16 +794,29 @@ ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
 }
 
 namespace{
-    bool change_to_bool(const ValuePtr& ptr) {
-        if (ptr->getType() == ValueType::BOOLEAN_VALUE && !std::dynamic_pointer_cast<BooleanValue>(ptr)->getValue()) {
-            return false;
-        }
-        else {
-            return true;
-        }
+/**
+ * @brief 将值转换为布尔类型。
+ * 
+ * @param ptr 要转换的值
+ * @return 如果值为真，返回 true；否则返回 false
+ */
+bool change_to_bool(const ValuePtr& ptr) {
+    if (ptr->getType() == ValueType::BOOLEAN_VALUE && !std::dynamic_pointer_cast<BooleanValue>(ptr)->getValue()) {
+        return false;
+    }
+    else {
+        return true;
     }
 }
+}
 
+/**
+ * @brief 实现 filter 过滤函数，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 筛选后的列表
+ */
 ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
     if (params.size() == 0) {
         throw LispError("The filter procedure need 2 params, given 0.");
@@ -611,6 +870,13 @@ ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+/**
+ * @brief 实现 reduce 函数，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境
+ * @return 筛选后的结果
+ */
 ValuePtr _reduce(const std::vector<ValuePtr>& params, EvalEnv& env) {
     if (params.size() == 0) {
         throw LispError("The reduce procedure need 2 params, given 0.");
@@ -660,6 +926,13 @@ ValuePtr _reduce(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+/**
+ * @brief 实现除法函数，接受一个或两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 计算结果
+ */
 ValuePtr divide(const std::vector<ValuePtr>& params, EvalEnv&) {
     if (params.size() == 0) {
         throw LispError("The / procedure need at least 1 param, given 0.");
@@ -692,45 +965,31 @@ ValuePtr divide(const std::vector<ValuePtr>& params, EvalEnv&) {
     }
 }
 
+/**
+ * @brief 实现绝对值函数，接受一个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 绝对值
+ */
 ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The abs procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->isNumber()) {
-            return std::make_shared<NumericValue>(std::abs(*params[0]->asNumber()));
-        }
-        else {
-            throw LispError("The abs cannot receive a non-numeric value.");
-        }
+    check_one_number(params, "abs");
+    if (params[0]->isNumber()) {
+        return std::make_shared<NumericValue>(std::abs(*params[0]->asNumber()));
     }
     else {
-        throw LispError("The abs procedure need only 1 params.");
+        throw LispError("The abs cannot receive a non-numeric value.");
     }
 }
 
-// namespace{
-//     void check_n_params(const std::vector<ValuePtr>& params, int n, const std::string& procedure) {
-//         if (params.size() != n) {
-//             throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
-//         }
-//     }
-
-//     void check_two_numbers(const std::vector<ValuePtr>& params, const std::string& procedure) {
-//         check_n_params(params, 2, procedure);
-//         if (!params[0]->isNumber() || !params[1]->isNumber()) {
-//             throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
-//         }
-//     }
-    
-//     void check_one_number(const std::vector<ValuePtr>& params, const std::string& procedure) {
-//         check_n_params(params, 1, procedure);
-//         if (!params[0]->isNumber()) {
-//             throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
-//         }
-//     }
-// }
-
+/**
+ * @brief 实现指数运算函数，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 计算结果
+ * @throw LispError 如果底数和指数都为零，则抛出异常
+ */
 ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_two_numbers(params, "expt");
     if (*params[0]->asNumber() == 0 && *params[1]->asNumber() == 0) {
@@ -739,6 +998,14 @@ ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<NumericValue>(std::pow(*params[0]->asNumber(), *params[1]->asNumber()));
 }
 
+/**
+ * @brief 实现整数除法函数，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 计算结果
+ * @throw LispError 如果除数为零，则抛出异常
+ */
 ValuePtr quotient(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_two_numbers(params, "quotient");
     double x = *params[0]->asNumber();
@@ -753,6 +1020,15 @@ ValuePtr quotient(const std::vector<ValuePtr>& params, EvalEnv&) {
         return std::make_shared<NumericValue>(static_cast<int>(result));
 }
 
+
+/**
+ * @brief 实现取模运算函数，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 计算结果
+ * @throw LispError 如果参数不是整数，则抛出异常
+ */
 ValuePtr modulo(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_two_numbers(params, "modulo");
     double x = *params[0]->asNumber();
@@ -771,6 +1047,14 @@ ValuePtr modulo(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<NumericValue>(result);
 }
 
+/**
+ * @brief 实现取余运算函数，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 计算结果
+ * @throw LispError 如果参数不是整数，则抛出异常
+ */
 ValuePtr remainder(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_two_numbers(params, "remainder");
     double x = *params[0]->asNumber();
@@ -786,42 +1070,58 @@ ValuePtr remainder(const std::vector<ValuePtr>& params, EvalEnv&) {
 }
 
 namespace{
-    bool isEqual(ValuePtr p1, ValuePtr p2, EvalEnv& env) {
-        if (p1->getType() != p2->getType()) {
-            return false;
+/**
+ * @brief 判断两个值是否相等。
+ * 
+ * @param p1 第一个值
+ * @param p2 第二个值
+ * @param env 求值环境
+ * @return 如果两个值相等，返回 true；否则返回 false
+ * @throw LispError 如果存在未实现的类型，则抛出异常
+ */
+bool isEqual(ValuePtr p1, ValuePtr p2, EvalEnv& env) {
+    if (p1->getType() != p2->getType()) {
+        return false;
+    }
+    else {
+        if (p1->getType() == ValueType::BOOLEAN_VALUE) {
+            return std::dynamic_pointer_cast<BooleanValue>(p1)->getValue() == std::dynamic_pointer_cast<BooleanValue>(p2)->getValue();
+        }
+        else if (p1->getType() == ValueType::NUMERIC_VALUE) {
+            return std::dynamic_pointer_cast<NumericValue>(p1)->getValue() == std::dynamic_pointer_cast<NumericValue>(p2)->getValue();
+        }
+        else if (p1->getType() == ValueType::STRING_VALUE) {
+            return std::dynamic_pointer_cast<StringValue>(p1)->getValue() == std::dynamic_pointer_cast<StringValue>(p2)->getValue();
+        }
+        else if (p1->getType() == ValueType::NIL_VALUE) {
+            return true;
+        }
+        else if (p1->getType() == ValueType::SYMBOL_VALUE) {
+            return std::dynamic_pointer_cast<SymbolValue>(p1)->getName() == std::dynamic_pointer_cast<SymbolValue>(p2)->getName();
+        }
+        else if (p1->getType() == ValueType::PAIR_VALUE) {
+            return isEqual(car({p1}, env), car({p2}, env), env) && isEqual(cdr({p1}, env), cdr({p2}, env), env);
+        }
+        else if (p1->getType() == ValueType::BUILTIN_PROC_VALUE) {
+            return std::dynamic_pointer_cast<BuiltinProcValue>(p1)->getFunction() == std::dynamic_pointer_cast<BuiltinProcValue>(p2)->getFunction();
+        }
+        else if (p1->getType() == ValueType::LAMBDA_VALUE) {
+            return p1.get() == p2.get();
         }
         else {
-            if (p1->getType() == ValueType::BOOLEAN_VALUE) {
-                return std::dynamic_pointer_cast<BooleanValue>(p1)->getValue() == std::dynamic_pointer_cast<BooleanValue>(p2)->getValue();
-            }
-            else if (p1->getType() == ValueType::NUMERIC_VALUE) {
-                return std::dynamic_pointer_cast<NumericValue>(p1)->getValue() == std::dynamic_pointer_cast<NumericValue>(p2)->getValue();
-            }
-            else if (p1->getType() == ValueType::STRING_VALUE) {
-                return std::dynamic_pointer_cast<StringValue>(p1)->getValue() == std::dynamic_pointer_cast<StringValue>(p2)->getValue();
-            }
-            else if (p1->getType() == ValueType::NIL_VALUE) {
-                return true;
-            }
-            else if (p1->getType() == ValueType::SYMBOL_VALUE) {
-                return std::dynamic_pointer_cast<SymbolValue>(p1)->getName() == std::dynamic_pointer_cast<SymbolValue>(p2)->getName();
-            }
-            else if (p1->getType() == ValueType::PAIR_VALUE) {
-                return isEqual(car({p1}, env), car({p2}, env), env) && isEqual(cdr({p1}, env), cdr({p2}, env), env);
-            }
-            else if (p1->getType() == ValueType::BUILTIN_PROC_VALUE) {
-                return std::dynamic_pointer_cast<BuiltinProcValue>(p1)->getFunction() == std::dynamic_pointer_cast<BuiltinProcValue>(p2)->getFunction();
-            }
-            else if (p1->getType() == ValueType::LAMBDA_VALUE) {
-                return p1.get() == p2.get();
-            }
-            else {
-                throw LispError("Unimplement in equal?.");
-            }
+            throw LispError("Unimplement in equal?.");
         }
     }
 }
+}
 
+/**
+ * @brief 判断两个值是否相等（eq?）。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境
+ * @return 如果两个值相等，返回 true；否则返回 false
+ */
 ValuePtr _eq(const std::vector<ValuePtr>& params, EvalEnv& env) {
     check_n_params(params, 2, "eq?");
     if (params[0]->isSelfEvaluating() && params[1]->isSelfEvaluating()) {
@@ -845,41 +1145,98 @@ ValuePtr _eq(const std::vector<ValuePtr>& params, EvalEnv& env) {
     }
 }
 
+/**
+ * @brief 判断两个值是否相等（equal?）。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境
+ * @return 如果两个值相等，返回 true；否则返回 false
+ */
 ValuePtr _equal(const std::vector<ValuePtr>& params, EvalEnv& env) {
     check_n_params(params, 2, "equal?");
     return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
 }
 
+/**
+ * @brief 实现逻辑非操作，接受一个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 非操作的结果
+ */
 ValuePtr _not(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_n_params(params, 1, "not");
     return std::make_shared<BooleanValue>(!change_to_bool(params[0]));
 }
 
+/**
+ * @brief 实现数值相等判断，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果两个数值相等，返回 true；否则返回 false
+ */
 ValuePtr __equal(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_two_numbers(params, "=");
     return std::make_shared<BooleanValue>(*params[0]->asNumber() == *params[1]->asNumber());
 }
 
+/**
+ * @brief 实现小于判断，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果第一个数值小于第二个数值，返回 true；否则返回 false
+ */
 ValuePtr less(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_two_numbers(params, "<");
     return std::make_shared<BooleanValue>(*params[0]->asNumber() < *params[1]->asNumber());
 }
 
+/**
+ * @brief 实现大于判断，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果第一个数值大于第二个数值，返回 true；否则返回 false
+ */
 ValuePtr larger(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_two_numbers(params, ">");
     return std::make_shared<BooleanValue>(*params[0]->asNumber() > *params[1]->asNumber());
 }
 
+/**
+ * @brief 实现小于等于判断，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果第一个数值小于等于第二个数值，返回 true；否则返回 false
+ */
 ValuePtr less_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_two_numbers(params, "<=");
     return std::make_shared<BooleanValue>(*params[0]->asNumber() <= *params[1]->asNumber());
 }
 
+/**
+ * @brief 实现大于等于判断，接受两个参数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果第一个数值大于等于第二个数值，返回 true；否则返回 false
+ */
 ValuePtr larger_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_two_numbers(params, ">=");
     return std::make_shared<BooleanValue>(*params[0]->asNumber() >= *params[1]->asNumber());
 }
 
+/**
+ * @brief 判断一个整数是否为偶数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数是偶数，返回 true；否则返回 false
+ * @throw LispError 如果参数不是整数，则抛出异常
+ */
 ValuePtr even(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_one_number(params, "even?");
     if (static_cast<int>(*params[0]->asNumber()) != *params[0]->asNumber()) {
@@ -888,6 +1245,14 @@ ValuePtr even(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<BooleanValue>(static_cast<int>(*params[0]->asNumber()) % 2 == 0);
 }
 
+/**
+ * @brief 判断一个整数是否为奇数。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境
+ * @return 如果参数是奇数，返回 true；否则返回 false
+ * @throw LispError 如果参数不是整数，则抛出异常
+ */
 ValuePtr odd(const std::vector<ValuePtr>& params, EvalEnv& env) {
     check_one_number(params, "odd?");
     if (static_cast<int>(*params[0]->asNumber()) != *params[0]->asNumber()) {
@@ -896,6 +1261,13 @@ ValuePtr odd(const std::vector<ValuePtr>& params, EvalEnv& env) {
     return std::make_shared<BooleanValue>(static_cast<int>(*params[0]->asNumber()) % 2 != 0);
 }
 
+/**
+ * @brief 判断一个数值是否为零。
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果参数等于零，返回 true；否则返回 false
+ */
 ValuePtr zero(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_one_number(params, "zero?");
     return std::make_shared<BooleanValue>(*params[0]->asNumber() == 0);
