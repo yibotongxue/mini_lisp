@@ -25,9 +25,6 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (args.size() == 3) {
         throw LispError("Nothing found to define " + *args[1]->asSymbol());
     }
-    if (args.size() > 4) {
-        throw LispError("The args are more than needed.");
-    }
     if (auto name = args[1]->asSymbol()) { // 定义变量
         auto first_Name = *args[1]->asSymbol();
 

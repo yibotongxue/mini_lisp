@@ -2,8 +2,7 @@
 #include <string>
 
 #include <stdexcept>
-#include "../include/file.h"
-#include "../include/repl.h"
+#include "../include/model.h"
 #include "../src/rjsj_test.hpp"
 
 struct TestCtx {
@@ -18,13 +17,13 @@ struct TestCtx {
 };
 
 int main(int argc, char** argv) {
-    // RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra, Lv6, Lv7, Lv7Lib, Sicp);
+    RJSJ_TEST(TestCtx, Lv2, Lv3, Lv4, Lv5, Lv5Extra, Lv6, Lv7, Lv7Lib, Sicp);
     std::shared_ptr<EvalEnv> env = EvalEnv::createEvalEnv();
     if (argc == 1) {
         while (true) {
             try {
                 std::cout << ">>> " ;
-                Repl::carryOut(env);
+                Repl().carryOut(env);
             }
             catch (std::runtime_error& e) {
                 std::cerr << "Error: " << e.what() << std::endl;
@@ -34,7 +33,7 @@ int main(int argc, char** argv) {
     else if (argc == 2) {
         try{
             std::string fileName = argv[1];
-            File::carryOut(fileName, env);
+            File(argv[1]).carryOut(env);
         }
         catch (std::runtime_error& e) {
             std::cerr << "Error: " << e.what() << std::endl;

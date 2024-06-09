@@ -10,17 +10,16 @@
 
 (define my-list '(1 2 3 4 5))
 
-(display " my-list has elements : ")
+(display "my-list is: ")
 (display my-list)
 (newline)
 
 (display "my-list is null? ")
-(display (null? my-list))
+(if (null? my-list) (display "true") (display "false"))
 (newline)
 
 (display "The first element of my-list is ")
-(display (car my-list))
-(newline)
+(displayln (car my-list))
 
 (display "The element of my-list left are ")
 (display (cdr my-list))
