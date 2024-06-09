@@ -10,6 +10,7 @@ set(SOURCES
     src/tokenizer.cpp
     src/value.cpp
     src/parser.cpp
+    src/reader.cpp
     src/builtins.cpp
     src/forms.cpp
     src/eval_env.cpp

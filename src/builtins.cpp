@@ -8,6 +8,7 @@
 #include "builtins.h"
 #include "error.h"
 #include "eval_env.h"
+#include "reader.h"
 #include <iostream>
 #include <cmath>
 #include <iterator>
@@ -248,14 +249,13 @@ ValuePtr displayln(const std::vector<ValuePtr>& params, EvalEnv& env) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr error(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    check_n_params(params, 1, "error");
-    auto param = env.eval(params[0]);
-    if (param->getType() == ValueType::STRING_VALUE) {
-        throw LispError(std::dynamic_pointer_cast<StringValue>(param)->getValue());
+    if (params.size() > 1) {
+        throw LispError("The error procedure need at most procedure, given" + std::to_string(static_cast<int>(params.size())));
     }
-    else {
-        throw LispError("error procedure need string type param");
+    if (params.size() == 0) {
+        throw LispError("0");
     }
+    throw LispError(params[0]->toString());
 }
 
 /**
@@ -280,7 +280,12 @@ ValuePtr eval(const std::vector<ValuePtr>& params, EvalEnv& env) {
  * @throws LispError 如果参数不是数值
  */
 ValuePtr _exit(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    check_n_params(params, 1, "exit");
+    if (params.size() > 1) {
+        throw LispError("The exit procedure need at most 1 params, given " + std::to_string(static_cast<int>(params.size())));
+    }
+    if (params.size() == 0) {
+        std::exit(0);
+    }
     auto param = env.eval(params[0]);
     if (param->isNumber()) {
         std::exit(*param->asNumber());
@@ -604,7 +609,6 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
                 std::ranges::copy(vec, std::back_inserter(result));
             }
             else if (!params[i]->isNil()) {
-                std::cout << params[i]->toString() << std::endl;
                 throw LispError("The append procedure need a list param.");
             }
         }
@@ -1338,6 +1342,16 @@ ValuePtr _at(const std::vector<ValuePtr>& params, EvalEnv&) {
     return vec[i];
 }
 
+ValuePtr _read(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_n_params(params, 0, "reader");
+    if (reader->empty()) {
+        reader->readIn();
+    }
+    return reader->output();
+}
+
+std::unique_ptr<Reader> reader = Reader::getInstance();
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"*", &multiply}, 
@@ -1389,7 +1403,8 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"reduce", &_reduce}, 
     {"strlen", &_strlen}, 
     {"strappend", &_strappend}, 
-    {"to_string", &_toString}, 
+    {"toString", &_toString}, 
     {"atoi", &_atoi}, 
-    {"at", &_at}
+    {"at", &_at}, 
+    {"read", &_read}
 };
