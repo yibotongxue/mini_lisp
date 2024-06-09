@@ -8,23 +8,24 @@
 class Model {
 protected:
     virtual ~Model() = default;
-public:
     virtual std::deque<TokenPtr> readTokens() = 0;
+public:
     virtual void carryOut(std::shared_ptr<EvalEnv>& env) = 0;
 };
 
 class Repl : public Model {
-public:
+private:
     std::deque<TokenPtr> readTokens() override;
+public:
     void carryOut(std::shared_ptr<EvalEnv>& env) override;   
 };
 
 class File : public Model {
 private:
     std::string fileName;
+    std::deque<TokenPtr> readTokens() override;
 public:
     File(const std::string& fileName) : fileName{fileName} {}
-    std::deque<TokenPtr> readTokens() override;
     void carryOut(std::shared_ptr<EvalEnv>& env) override;  
 };
 
