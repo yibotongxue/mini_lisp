@@ -5,9 +5,9 @@
 > Description:   
  ************************************************************************/
 
-#include "..\include\builtins.h"
-#include "../include/error.h"
-#include "../include/eval_env.h"
+#include "builtins.h"
+#include "error.h"
+#include "eval_env.h"
 #include <iostream>
 #include <cmath>
 #include <iterator>

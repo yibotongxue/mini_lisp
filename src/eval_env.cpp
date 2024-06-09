@@ -4,10 +4,10 @@
 > Created Time:  2024/5/17 15:49:20
 > Description:   
  ************************************************************************/
-#include "../include/eval_env.h"
-#include "../include/error.h"
-#include "../include/forms.h"
-#include "../include/builtins.h"
+#include "./eval_env.h"
+#include "error.h"
+#include "forms.h"
+#include "builtins.h"
 #include <iostream>
 
 using namespace std::literals;

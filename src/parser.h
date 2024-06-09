@@ -8,9 +8,9 @@
 #define __PARSER_H
 
 
-#include "../include/token.h"
-#include "../include/tokenizer.h"
-#include "../include/value.h"
+#include "token.h"
+#include "tokenizer.h"
+#include "value.h"
 #include <queue>
 
 /**

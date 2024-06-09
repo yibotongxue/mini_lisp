@@ -1,12 +1,12 @@
-#include "../include/value.h"
-#include "../include/forms.h"
-#include "../include/builtins.h"
-#include "../include/error.h"
+#include "value.h"
+#include "forms.h"
+#include "builtins.h"
+#include "error.h"
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <typeinfo>
-#include <eval_env.h>
+#include "eval_env.h"
 
 LambdaValue::LambdaValue(const std::vector<std::string>& params, const std::vector<ValuePtr>& body, std::shared_ptr<EvalEnv> env)
     : Value{ValueType::LAMBDA_VALUE}, params{params}, body{body}, parent{env} {}

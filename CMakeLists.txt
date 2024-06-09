@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24.2)
 project(mini_lisp)
 
 # 设置头文件目录
-include_directories(include)
+include_directories(src)
 
 # 将源文件列表保存到变量中
 set(SOURCES

@@ -2,7 +2,7 @@
 #include <string>
 
 #include <stdexcept>
-#include "../include/model.h"
+#include "model.h"
 #include "../src/rjsj_test.hpp"
 
 struct TestCtx {

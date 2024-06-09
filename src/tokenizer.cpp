@@ -1,10 +1,10 @@
-#include "../include/tokenizer.h"
+#include "tokenizer.h"
 
 #include <cctype>
 #include <set>
 #include <stdexcept>
 
-#include "../include/error.h"
+#include "error.h"
 
 const std::set<char> TOKEN_END{'(', ')', '\'', '`', ',', '"'};
 

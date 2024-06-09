@@ -5,8 +5,8 @@
 > Description:   类Parser的实现
  ************************************************************************/
 
-#include "../include/parser.h"
-#include "../include/error.h"
+#include "parser.h"
+#include "error.h"
 #include <iostream>
 
 /**

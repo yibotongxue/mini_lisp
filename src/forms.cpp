@@ -5,9 +5,9 @@
 > Description:   
  ************************************************************************/
 
-#include "../include/forms.h"
-#include "../include/error.h"
-#include "../include/builtins.h"
+#include "forms.h"
+#include "error.h"
+#include "builtins.h"
 #include <iostream>
 
 /**

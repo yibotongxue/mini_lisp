@@ -1,5 +1,5 @@
-#include "../include/model.h"
-#include "../include/error.h"
+#include "model.h"
+#include "error.h"
 #include <iostream>
 #include <stack>
 #include <string>
@@ -20,7 +20,6 @@ std::deque<TokenPtr> Repl::readTokens() {
         std::string line;
         std::getline(std::cin, line);
 
-        // 更新缩进层级
         for (int i = 0; i < static_cast<int>(line.size()); i++) {
             if (line[i] == '(') {
                 leftParen.push(indentationLevel + i);
@@ -32,7 +31,6 @@ std::deque<TokenPtr> Repl::readTokens() {
                 }
             }
         }
-        indentationLevel = leftParen.size();
 
         if (std::cin.eof()) {
             std::exit(0);

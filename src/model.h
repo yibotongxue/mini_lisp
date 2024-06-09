@@ -1,13 +1,13 @@
 #ifndef __MODEL_H__
 #define __MODEL_H__
 
-#include "../include/parser.h"
-#include "../include/tokenizer.h"
-#include "../include/eval_env.h"
+#include "parser.h"
+#include "tokenizer.h"
+#include "eval_env.h"
 
 class Model {
 protected:
-    ~Model() = default;
+    virtual ~Model() = default;
 public:
     virtual std::deque<TokenPtr> readTokens() = 0;
     virtual void carryOut(std::shared_ptr<EvalEnv>& env) = 0;
