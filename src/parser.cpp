@@ -128,6 +128,11 @@ ValuePtr Parser::parseTails() {
     }
 }
 
+/**
+ * @brief 判断对象的 tokens 是否为空
+ * 
+ * @return 如果 tokens 为空，返回 true ，否则返回 false
+ */
 bool Parser::empty() const {
     return tokens.empty();
 }

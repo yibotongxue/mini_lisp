@@ -218,7 +218,7 @@ ValuePtr display(const std::vector<ValuePtr>& params, EvalEnv&) {
     check_n_params(params, 1, "display");
     auto param = params[0];
     if (param->getType() == ValueType::STRING_VALUE) {
-        std::cout << std::dynamic_pointer_cast<StringValue>(params[0])->getValue() << std::endl;
+        std::cout << std::dynamic_pointer_cast<StringValue>(params[0])->getValue();
     }
     else {
         std::cout << "\'" << param->toString();
@@ -1273,6 +1273,71 @@ ValuePtr zero(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<BooleanValue>(*params[0]->asNumber() == 0);
 }
 
+ValuePtr _strlen(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_n_params(params, 1, "strlen");
+    if (params[0]->getType() == ValueType::STRING_VALUE) {
+        auto s = std::dynamic_pointer_cast<StringValue>(params[0])->getValue();
+        return std::make_shared<NumericValue>(static_cast<double>(s.size()));
+    }
+    else {
+        throw LispError("The strlen procedure need a string type value.");
+    }
+}
+
+ValuePtr _strappend(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_n_params(params, 2, "strappend");
+    if (params[0]->getType() != ValueType::STRING_VALUE || params[1]->getType() != ValueType::STRING_VALUE) {
+        throw LispError("The strappend procedure need string type values.");
+    }
+    auto s1 = std::dynamic_pointer_cast<StringValue>(params[0])->getValue();
+    auto s2 = std::dynamic_pointer_cast<StringValue>(params[1])->getValue();
+    return std::make_shared<StringValue>(s1 + s2);
+}
+
+ValuePtr _toString(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_n_params(params, 1, "toString");
+    return std::make_shared<StringValue>(params[0]->toString());
+}
+
+ValuePtr _atoi(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_n_params(params, 1, "atoi");
+    if (params[0]->getType() == ValueType::STRING_VALUE) {
+        try {
+            int result = atoi(std::dynamic_pointer_cast<StringValue>(params[0])->getValue().c_str());
+            return std::make_shared<NumericValue>(result);
+        }
+        catch (...) {
+            throw LispError("The string value should be a numer.");
+        }
+    }
+    else {
+        throw LispError("The atoi procedure need a string type value as the params.");
+    }
+}
+
+ValuePtr _at(const std::vector<ValuePtr>& params, EvalEnv&) {
+    check_n_params(params, 2, "at");
+    if (params[0]->isNil()) {
+        throw LispError("Out of range.");
+    }
+    if (!params[0]->isList()) {
+        throw LispError("The first param of the at procedure should be a list.");
+    }
+    if (!params[1]->isNumber()) {
+        throw LispError("The second param of the at procedure should be a number.");
+    }
+    double index = *params[1]->asNumber();
+    if (static_cast<int>(index) != index) {
+        throw LispError("The second param of the at procedure shoule be a integer.");
+    }
+    int i = static_cast<int>(index);
+    auto vec = params[0]->toVector();
+    if (i < 0 || i >= static_cast<int>(vec.size()) - 1) {
+        throw LispError("Out of range.");
+    }
+    return vec[i];
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"*", &multiply}, 
@@ -1321,5 +1386,10 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"list", &_list}, 
     {"map", &_map}, 
     {"filter", &filter}, 
-    {"reduce", &_reduce}
+    {"reduce", &_reduce}, 
+    {"strlen", &_strlen}, 
+    {"strappend", &_strappend}, 
+    {"toString", &_toString}, 
+    {"atoi", &_atoi}, 
+    {"at", &_at}
 };
