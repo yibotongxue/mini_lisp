@@ -19,6 +19,15 @@ std::deque<TokenPtr> Repl::readTokens() {
             std::exit(0);
         }
         auto lineTokens = Tokenizer::tokenize(line);
+        if (lineTokens.size() == 0) {
+            if (tokens.empty()) {
+                return std::move(tokens);
+            }
+            else {
+                std::cout << "... ";
+                continue;
+            }
+        }
         for (auto& token : lineTokens) {
             if (token->getType() == TokenType::LEFT_PAREN) {
                 leftParen++;
