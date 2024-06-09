@@ -1389,7 +1389,7 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"reduce", &_reduce}, 
     {"strlen", &_strlen}, 
     {"strappend", &_strappend}, 
-    {"toString", &_toString}, 
+    {"to_string", &_toString}, 
     {"atoi", &_atoi}, 
     {"at", &_at}
 };

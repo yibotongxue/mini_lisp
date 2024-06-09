@@ -1,6 +1,7 @@
 #include "../include/repl.h"
 #include "../include/error.h"
 #include <iostream>
+#include <stack>
 #include <string>
 
 /**
@@ -10,45 +11,58 @@
  * @throws SyntaxError 如果括号不匹配
  */
 std::deque<TokenPtr> Repl::readTokens() {
-    int leftParen{0}, rightParen{0};
+    std::stack<int> leftParen{};
     std::deque<TokenPtr> tokens{};
+    int indentationLevel = 1; // 记录当前缩进层级
+
     while (true) {
         std::string line;
         std::getline(std::cin, line);
+
+        // 更新缩进层级
+        for (int i = 0; i < static_cast<int>(line.size()); i++) {
+            if (line[i] == '(') {
+                leftParen.push(indentationLevel + i);
+            } else if (line[i] == ')') {
+                if (!leftParen.empty()) {
+                    leftParen.pop();
+                } else {
+                    throw SyntaxError("Unmatched parens.");
+                }
+            }
+        }
+        indentationLevel = leftParen.size();
+
         if (std::cin.eof()) {
             std::exit(0);
         }
+
         auto lineTokens = Tokenizer::tokenize(line);
         if (lineTokens.size() == 0) {
             if (tokens.empty()) {
                 return std::move(tokens);
-            }
-            else {
-                std::cout << "... ";
+            } else {
+                std::cout << "... " << std::string(leftParen.top(), ' ');
+                indentationLevel = leftParen.top() + 1;
                 continue;
             }
         }
+
         for (auto& token : lineTokens) {
-            if (token->getType() == TokenType::LEFT_PAREN) {
-                leftParen++;
-            }
-            else if (token->getType() == TokenType::RIGHT_PAREN) {
-                rightParen++;
-            }
-            if (leftParen < rightParen) {
-                throw SyntaxError("Unmatched parens.");
-            }
             tokens.push_back(std::move(token));
         }
+
         if (tokens.back()->getType() != TokenType::QUOTE 
             && tokens.back()->getType() != TokenType::QUASIQUOTE 
             && tokens.back()->getType() != TokenType::UNQUOTE 
-            && leftParen == rightParen) {
+            && leftParen.empty()) {
                 return std::move(tokens);
         }
-        std::cout << "... "; 
+        indentationLevel = leftParen.top() + 1;
+        std::cout << "... " << std::string(leftParen.top(), ' '); 
     }
 }
+
 
 /**
  * @brief 执行REPL中的表达式。
