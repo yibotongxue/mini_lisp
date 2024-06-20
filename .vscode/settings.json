@@ -76,5 +76,9 @@
         "string_view": "cpp",
         "numbers": "cpp",
         "fstream": "cpp"
-    }
+    },
+    "testMate.cpp.testFramework": "gtest",
+    "testMate.cpp.executables": "D:\\Users\\Downloads\\mini_lisp\\build\\mini_lisp",
+    "testMate.cpp.gtest.gmockVerbose": "info",
+    "testMate.cpp.log.logpanel": true    
 }

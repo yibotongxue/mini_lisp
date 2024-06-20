@@ -6,77 +6,12 @@
  ************************************************************************/
 
 #include "builtins.h"
-#include "error.h"
 #include "eval_env.h"
 #include "reader.h"
 #include <iostream>
 #include <cmath>
 #include <iterator>
-#include <algorithm>
-
-namespace{
-/**
- * @brief 检查参数数量是否匹配预期值。
- * 
- * @param params 参数向量
- * @param n 预期的参数数量
- * @param procedure 正在检查的过程名称
- * @throws LispError 如果参数数量不匹配
- */
-void check_n_params(const std::vector<ValuePtr>& params, int n, const std::string& procedure) {
-    if (params.size() != n) {
-        throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
-    }
-}
-
-/**
- * @brief 检查参数类型是否与预期类型匹配。
- * 
- * @param params 参数向量
- * @param n 预期的参数数量
- * @param procedure 正在检查的过程名称
- * @param type 预期的值类型
- * @throws LispError 如果参数数量或类型不匹配
- */
-void check_n_params_type(const std::vector<ValuePtr>& params, int n, const std::string& procedure, ValueType& type) {
-    if (params.size() != n) {
-        throw LispError("The " + procedure + " procedure need " + std::to_string(n) + " params, given " + std::to_string(int(params.size())) + ".");
-    }
-    for (int i = 0; i < params.size(); i++) {
-        if (params[i]->getType() != type) {
-            throw LispError("The " + procedure + " procedure cannot receive a non value.");
-        }
-    }
-}
-
-/**
- * @brief 检查是否为两个参数，以及两个参数是否为数值。
- * 
- * @param params 参数向量
- * @param procedure 正在检查的过程名称
- * @throws LispError 如果参数不是数值或参数数目不是两个
- */
-void check_two_numbers(const std::vector<ValuePtr>& params, const std::string& procedure) {
-    check_n_params(params, 2, procedure);
-    if (!params[0]->isNumber() || !params[1]->isNumber()) {
-        throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
-    }
-}
-
-/**
- * @brief 检查是否为一个参数，以及一个参数是否为数值。
- * 
- * @param params 参数向量
- * @param procedure 正在检查的过程名称
- * @throws LispError 如果参数不是数值或参数数目不是一个
- */
-void check_one_number(const std::vector<ValuePtr>& params, const std::string& procedure) {
-    check_n_params(params, 1, procedure);
-    if (!params[0]->isNumber()) {
-        throw LispError("The " + procedure + " procedure cannot receive a non-numeric value.");
-    }
-}
-}
+#include "params_checker.h"
 
 /**
  * @brief 实现加法操作，将多个数值相加并返回结果。
@@ -143,33 +78,17 @@ ValuePtr multiply(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数包含非数值
  */
 ValuePtr reduce(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("Less params than needed.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->isNumber()) {
-            return std::make_shared<NumericValue>(-*params[0]->asNumber());
-        }
-        else {
-            throw LispError("Cannot reduce a non-numeric value.");
-        }
+    std::vector<int> _range = {1, 2};
+    auto checker = std::make_unique<ParamsChecker>(params, "-", 
+        std::move(std::make_unique<RangeParamsNumberChecker>(_range)));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
+    if (params.size() == 1) {
+        return std::make_shared<NumericValue>(-*params[0]->asNumber());
     }
     else {
-        if (params[0]->isNumber()) {
-            double result = *params[0]->asNumber();
-            for (int i = 1; i < params.size(); i++) {
-                if (params[i]->isNumber()) {
-                    result -= *params[i]->asNumber();
-                }
-                else {
-                    throw LispError("Cannot reduce a non-numeric value.");
-                }
-            }
-            return std::make_shared<NumericValue>(result);
-        }
-        else {
-            throw LispError("Cannot reduce a non-numeric value.");
-        }
+        return std::make_shared<NumericValue>(*params[0]->asNumber() - *params[1]->asNumber());
     }
 }
 
@@ -182,7 +101,9 @@ ValuePtr reduce(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    check_n_params(params, 2, "apply");
+    auto checker = std::make_unique<ParamsChecker>(params, "apply",
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->check();
     if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
         if (params[1]->isList() || params[1]->isNil()) {
             auto vec = params[1]->toVector();
@@ -216,7 +137,9 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
  * @return 空值
  */
 ValuePtr display(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_n_params(params, 1, "display");
+    std::unique_ptr<ParamsChecker> checker = std::make_unique<ParamsChecker>(
+        params, "display", std::move(std::make_unique<EqualParamsNumberChecker>(1)));
+    checker->check();
     auto param = params[0];
     if (param->getType() == ValueType::STRING_VALUE) {
         std::cout << std::dynamic_pointer_cast<StringValue>(params[0])->getValue();
@@ -267,7 +190,9 @@ ValuePtr error(const std::vector<ValuePtr>& params, EvalEnv& env) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr eval(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    check_n_params(params, 1, "eval");
+    auto checker = std::make_unique<ParamsChecker>(params, "eval", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
     return env.eval(params[0]);
 }
 
@@ -280,18 +205,16 @@ ValuePtr eval(const std::vector<ValuePtr>& params, EvalEnv& env) {
  * @throws LispError 如果参数不是数值
  */
 ValuePtr _exit(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.size() > 1) {
-        throw LispError("The exit procedure need at most 1 params, given " + std::to_string(static_cast<int>(params.size())));
-    }
+    std::vector<int> _range = {0, 1};
+    auto checker = std::make_unique<ParamsChecker>(params, "exit", 
+        std::make_unique<RangeParamsNumberChecker>(_range));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->check();
     if (params.size() == 0) {
         std::exit(0);
     }
-    auto param = env.eval(params[0]);
-    if (param->isNumber()) {
-        std::exit(*param->asNumber());
-    }
     else {
-        throw LispError("params need to be a numeric value.");
+        std::exit(*params[0]->asNumber());
     }
 }
 
@@ -322,7 +245,9 @@ ValuePtr newline(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr atom(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_n_params(params, 1, "atom?");
+    auto checker = std::make_unique<ParamsChecker>(params, "atom?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
     if (params[0]->getType() == ValueType::BOOLEAN_VALUE ||
         params[0]->getType() == ValueType::NUMERIC_VALUE ||
         params[0]->getType() == ValueType::STRING_VALUE ||
@@ -344,19 +269,14 @@ ValuePtr atom(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr boolean(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The boolean? procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->getType() == ValueType::BOOLEAN_VALUE) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    auto checker = std::make_unique<ParamsChecker>(params, "boolean?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
+    if (params[0]->getType() == ValueType::BOOLEAN_VALUE) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The boolean? procedure need only 1 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
@@ -369,19 +289,14 @@ ValuePtr boolean(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr integer(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The integer? procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->isNumber() && static_cast<int>(*params[0]->asNumber()) == *params[0]->asNumber()) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    auto checker = std::make_unique<ParamsChecker>(params, "integer?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
+    if (params[0]->isNumber() && static_cast<int>(*params[0]->asNumber()) == *params[0]->asNumber()) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The integer? procedure need only 1 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
@@ -394,19 +309,14 @@ ValuePtr integer(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr list(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The list? procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->isList() || params[0]->isNil()) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    auto checker = std::make_unique<ParamsChecker>(params, "list?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
+    if (params[0]->isList() || params[0]->isNil()) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The list? procedure need only 1 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
@@ -419,19 +329,13 @@ ValuePtr list(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr number(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The number? procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->isNumber()) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    auto checker = std::make_unique<ParamsChecker>(params, "number?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    if (params[0]->isNumber()) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The number? procedure need only 1 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
@@ -444,19 +348,14 @@ ValuePtr number(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr null(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The null? procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->isNil()) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    auto checker = std::make_unique<ParamsChecker>(params, "null?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
+    if (params[0]->isNil()) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The null? procedure need only 1 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
@@ -469,19 +368,14 @@ ValuePtr null(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr _pair(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The pair? procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->getType() == ValueType::PAIR_VALUE) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    auto checker = std::make_unique<ParamsChecker>(params, "pair?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
+    if (params[0]->getType() == ValueType::PAIR_VALUE) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The pair? procedure need only 1 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
@@ -494,19 +388,14 @@ ValuePtr _pair(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr isProcedure(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("THe procedure? procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE || params[0]->getType() == ValueType::LAMBDA_VALUE) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    auto checker = std::make_unique<ParamsChecker>(params, "procedure?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
+    if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE || params[0]->getType() == ValueType::LAMBDA_VALUE) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The procedure? procedure need only 1 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
@@ -519,19 +408,14 @@ ValuePtr isProcedure(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr isString(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The string? procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->getType() == ValueType::STRING_VALUE) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    auto checker = std::make_unique<ParamsChecker>(params, "string?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
+    if (params[0]->getType() == ValueType::STRING_VALUE) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The string? procedure need only 1 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
@@ -544,19 +428,14 @@ ValuePtr isString(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr isSymbol(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The symbol? procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->isSymbol()) {
-            return std::make_shared<BooleanValue>(true);
-        }
-        else {
-            return std::make_shared<BooleanValue>(false);
-        }
+    auto checker = std::make_unique<ParamsChecker>(params, "symbol?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
+    if (params[0]->isSymbol()) {
+        return std::make_shared<BooleanValue>(true);
     }
     else {
-        throw LispError("The symbol? procedure need only 1 params.");
+        return std::make_shared<BooleanValue>(false);
     }
 }
 
@@ -629,20 +508,11 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr car(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The car procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->getType() == ValueType::PAIR_VALUE) {
-            return std::dynamic_pointer_cast<PairValue>(params[0])->getLeft();
-        }
-        else {
-            throw LispError("THe car procedure need pair value.");
-        }
-    }
-    else {
-        throw LispError("The car procedure need only 1 params.");
-    }
+    auto checker = std::make_unique<ParamsChecker>(params, "car", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->addTypeRequire(0, ValueType::PAIR_VALUE);
+    checker->check();
+    return std::dynamic_pointer_cast<PairValue>(params[0])->getLeft();
 }
 
 /**
@@ -654,20 +524,11 @@ ValuePtr car(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr cdr(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("THe cdr procedure need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->getType() == ValueType::PAIR_VALUE) {
-            return std::dynamic_pointer_cast<PairValue>(params[0])->getRight();
-        }
-        else {
-            throw LispError("The cdr procedure need pair value.");
-        }
-    }
-    else {
-        throw LispError("The cdr procedure need only 1 params.");
-    }
+    auto checker = std::make_unique<ParamsChecker>(params, "cdr", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->addTypeRequire(0, ValueType::PAIR_VALUE);
+    checker->check();
+    return std::dynamic_pointer_cast<PairValue>(params[0])->getRight();
 }
 
 /**
@@ -679,18 +540,10 @@ ValuePtr cdr(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr cons(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The cons procedure need 2 params, given 0.");
-    }
-    else if (params.size() == 1) {
-        throw LispError("The cons procedure need 2 params, given 1.");
-    }
-    else if (params.size() == 2) {
-        return std::make_shared<PairValue>(params[0], params[1]);
-    }
-    else {
-        throw LispError("The cons procedure need only 2 params.");
-    }
+    auto checker = std::make_unique<ParamsChecker>(params, "cons", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->check();
+    return std::make_shared<PairValue>(params[0], params[1]);
 }
 
 /**
@@ -702,24 +555,19 @@ ValuePtr cons(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr length(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The length proceduren need 1 params.");
-    }
-    else if (params.size() == 1) {
-        if (params[0]->isList() || params[0]->isNil()) {
-            if (params[0]->isNil()) {
-                return std::make_shared<NumericValue>(0);
-            }
-            else {
-                return std::make_shared<NumericValue>(static_cast<int>(params[0]->toVector().size()) - 1);
-            }
+    auto checker = std::make_unique<ParamsChecker>(params, "length", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
+    if (params[0]->isList() || params[0]->isNil()) {
+        if (params[0]->isNil()) {
+            return std::make_shared<NumericValue>(0);
         }
         else {
-            throw LispError("The length procedure need list param.");
+            return std::make_shared<NumericValue>(static_cast<int>(params[0]->toVector().size()) - 1);
         }
     }
     else {
-        throw LispError("The length procedure need only 1 params.");
+        throw LispError("The length procedure need list param.");
     }
 }
 
@@ -745,55 +593,47 @@ ValuePtr _list(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数不符合预期
  */
 ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.size() == 0) {
-        throw LispError("The map procedure need 2 params, given 0.");
-    }
-    else if (params.size() == 1) {
-        throw LispError("The map procedure need 2 params, given 1.");
-    }
-    else if (params.size() == 2) {
-        if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
-            std::vector<ValuePtr>result{};
-            if (params[1]->isList()) {
-                auto vec = params[1]->toVector();
-                vec.pop_back();
-                std::ranges::transform(vec, std::back_inserter(result), [&env, &params](ValuePtr& ptr) -> ValuePtr {
-                    return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({ptr}, env);
-                });
-                result.push_back(std::make_shared<NilValue>());
-                return makeList(result, 0);
-            }
-            else if (params[1]->isNil()) {
-                return std::make_shared<NilValue>();
-            }
-            else {
-                throw LispError("The map procedure need list param as the second param.");
-            }
+    auto checker = std::make_unique<ParamsChecker>(params, "map", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->check();
+    if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+        std::vector<ValuePtr>result{};
+        if (params[1]->isList()) {
+            auto vec = params[1]->toVector();
+            vec.pop_back();
+            std::ranges::transform(vec, std::back_inserter(result), [&env, &params](ValuePtr& ptr) -> ValuePtr {
+                return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({ptr}, env);
+            });
+            result.push_back(std::make_shared<NilValue>());
+            return makeList(result, 0);
         }
-        else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
-            std::vector<ValuePtr> result{};
-            if (params[1]->isList()) {
-                auto vec = params[1]->toVector();
-                vec.pop_back();
-                std::ranges::transform(vec, std::back_inserter(result), [&params](ValuePtr& ptr) -> ValuePtr {
-                    return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({ptr});
-                }) ;
-                result.push_back(std::make_shared<NilValue>());
-                return makeList(result, 0);
-            }
-            else if (params[1]->isNil()) {
-                return std::make_shared<NilValue>();
-            }
-            else {
-                throw LispError("The map procedure need list param as the second param.");
-            }
+        else if (params[1]->isNil()) {
+            return std::make_shared<NilValue>();
         }
         else {
-            throw LispError("The map procedure need procedure param as the first param.");
+            throw LispError("The map procedure need list param as the second param.");
+        }
+    }
+    else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
+        std::vector<ValuePtr> result{};
+        if (params[1]->isList()) {
+            auto vec = params[1]->toVector();
+            vec.pop_back();
+            std::ranges::transform(vec, std::back_inserter(result), [&params](ValuePtr& ptr) -> ValuePtr {
+                return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({ptr});
+            }) ;
+            result.push_back(std::make_shared<NilValue>());
+            return makeList(result, 0);
+        }
+        else if (params[1]->isNil()) {
+            return std::make_shared<NilValue>();
+        }
+        else {
+            throw LispError("The map procedure need list param as the second param.");
         }
     }
     else {
-        throw LispError("The map procedure need only 2 params.");
+        throw LispError("The map procedure need procedure param as the first param.");
     }
 }
 
@@ -822,55 +662,47 @@ bool change_to_bool(const ValuePtr& ptr) {
  * @return 筛选后的列表
  */
 ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.size() == 0) {
-        throw LispError("The filter procedure need 2 params, given 0.");
-    }
-    else if (params.size() == 1) {
-        throw LispError("The filter procedure need 2 params, given 1.");
-    }
-    else if (params.size() == 2) {
-        if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
-            if (params[1]->isList()) {
-                std::vector<ValuePtr> result{};
-                auto vec = params[1]->toVector();
-                vec.pop_back();
-                std::ranges::copy_if(vec, std::back_inserter(result), [&env, &params](ValuePtr& ptr) -> bool {
-                    return change_to_bool(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({ptr}, env));
-                });
-                result.push_back(std::make_shared<NilValue>());
-                return makeList(result, 0);
-            }
-            else if (params[1]->isNil()) {
-                return std::make_shared<NilValue>();
-            }
-            else {
-                throw LispError("The filter procedure need list param as the second param.");
-            }
+    auto checker = std::make_unique<ParamsChecker>(params, "filter", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->check();
+    if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+        if (params[1]->isList()) {
+            std::vector<ValuePtr> result{};
+            auto vec = params[1]->toVector();
+            vec.pop_back();
+            std::ranges::copy_if(vec, std::back_inserter(result), [&env, &params](ValuePtr& ptr) -> bool {
+                return change_to_bool(std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({ptr}, env));
+            });
+            result.push_back(std::make_shared<NilValue>());
+            return makeList(result, 0);
         }
-        else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
-            if (params[1]->isList()) {
-                std::vector<ValuePtr> result{};
-                auto vec = params[1]->toVector();
-                vec.pop_back();
-                std::ranges::copy_if(vec, std::back_inserter(result), [&params](ValuePtr& ptr) -> bool {
-                    return change_to_bool(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({ptr}));
-                });
-                result.push_back(std::make_shared<NilValue>());
-                return makeList(result, 0);
-            }
-            else if (params[1]->isNil()) {
-                return std::make_shared<NilValue>();
-            }
-            else {
-                throw LispError("The filter procedure need list param as the second param.");
-            }
+        else if (params[1]->isNil()) {
+            return std::make_shared<NilValue>();
         }
         else {
-            throw LispError("The filter proceduren need procedure param as the first param.");
+            throw LispError("The filter procedure need list param as the second param.");
+        }
+    }
+    else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
+        if (params[1]->isList()) {
+            std::vector<ValuePtr> result{};
+            auto vec = params[1]->toVector();
+            vec.pop_back();
+            std::ranges::copy_if(vec, std::back_inserter(result), [&params](ValuePtr& ptr) -> bool {
+                return change_to_bool(std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({ptr}));
+            });
+            result.push_back(std::make_shared<NilValue>());
+            return makeList(result, 0);
+        }
+        else if (params[1]->isNil()) {
+            return std::make_shared<NilValue>();
+        }
+        else {
+            throw LispError("The filter procedure need list param as the second param.");
         }
     }
     else {
-        throw LispError("The filter procedure need only 2 params.");
+        throw LispError("The filter proceduren need procedure param as the first param.");
     }
 }
 
@@ -882,51 +714,39 @@ ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
  * @return 筛选后的结果
  */
 ValuePtr _reduce(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    if (params.size() == 0) {
-        throw LispError("The reduce procedure need 2 params, given 0.");
-    }
-    else if (params.size() == 1) {
-        throw LispError("The reduce procedure need 2 params, given 1.");
-    }
-    else if (params.size() == 2) {
-        if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
-            if (params[1]->isList()) {
-                if (std::dynamic_pointer_cast<NumericValue>(length({params[1]}, env))->getValue() == 1) {
-                    return car({params[1]}, env);
-                }
-                else {
-                    return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({car({params[1]}, env), _reduce({params[0], cdr({params[1]}, env)}, env)}, env);
-                }
-            }
-            else if (params[1]->isNil()) {
-                throw LispError("The reduce procedure cannot receive a null list as the second param.");
-            }
-            else {
-                throw LispError("The reduce procedure need a list param as the second param.");
-            }
+    auto checker = std::make_unique<ParamsChecker>(params, "reduce", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->check();
+    if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
+        if (params[1]->isNil()) {
+            throw LispError("The reduce procedure cannot receive a null list as the second param.");
         }
-        else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
-            if (params[1]->isList()) {
-                if (std::dynamic_pointer_cast<NumericValue>(length({params[1]}, env))->getValue() == 1) {
-                    return car({params[1]}, env);
-                }
-                else {
-                    return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({car({params[1]}, env), _reduce({params[0], cdr({params[1]}, env)}, env)});
-                }
-            }
-            else if (params[1]->isNil()) {
-                throw LispError("The reduce procedure cannot receive a null list as the second param.");
-            }
-            else {
-                throw LispError("The reduce procedure need a list param as the second param.");
-            }
+        else if (!params[1]->isList()) {
+            throw LispError("The reduce procedure need a list param as the second param.");
+        }
+        if (std::dynamic_pointer_cast<NumericValue>(length({params[1]}, env))->getValue() == 1) {
+            return car({params[1]}, env);
         }
         else {
-            throw LispError("The reduce procedure need a procedure param as the first param.");
+            return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({car({params[1]}, env), _reduce({params[0], cdr({params[1]}, env)}, env)}, env);
+        }
+    }
+    else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
+        if (params[1]->isNil()) {
+            throw LispError("The reduce procedure cannot receive a null list as the second param.");
+        }
+        else if (!params[1]->isList()) {
+            throw LispError("The reduce procedure need a list param as the second param.");
+        }
+        if (std::dynamic_pointer_cast<NumericValue>(length({params[1]}, env))->getValue() == 1) {
+            return car({params[1]}, env);
+        }
+        else {
+            return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({car({params[1]}, env), _reduce({params[0], cdr({params[1]}, env)}, env)});
         }
     }
     else {
-        throw LispError("The reduce procedure need only 2 params.");
+        throw LispError("The reduce procedure need a procedure param as the first param.");
     }
 }
 
@@ -938,34 +758,23 @@ ValuePtr _reduce(const std::vector<ValuePtr>& params, EvalEnv& env) {
  * @return 计算结果
  */
 ValuePtr divide(const std::vector<ValuePtr>& params, EvalEnv&) {
-    if (params.size() == 0) {
-        throw LispError("The / procedure need at least 1 param, given 0.");
+    std::vector<int> _range = {1, 2};
+    auto checker = std::make_unique<ParamsChecker>(params, "/", 
+        std::make_unique<RangeParamsNumberChecker>(_range));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
+    if (params.size() == 1) {
+        if (*params[0]->asNumber() == 0) {
+            throw LispError("Division by zero.");
+        }
+        return std::make_shared<NumericValue>(1.0 / *params[0]->asNumber());
     }
-    else if (params.size() == 1) {
-        if (params[0]->isNumber()) {
-            if (*params[0]->asNumber() == 0) {
-                throw LispError("Division by zero.");
-            }
-            return std::make_shared<NumericValue>(1.0 / *params[0]->asNumber());
-        }
-        else {
-            throw LispError("Cannot divide a non-numeric value.");
-        }
-    }
-    else if (params.size() == 2) {
-        if (!params[0]->isNumber()) {
-            throw LispError("Cannot divide a non-numeric value.");
-        }
-        else if (!params[1]->isNumber()) {
-            throw LispError("Cannot use a non-numeric value to divide another value.");
-        }
+    else {
         if (*params[1]->asNumber() == 0) {
             throw LispError("Division by zero.");
         }
         return std::make_shared<NumericValue>(*params[0]->asNumber() / *params[1]->asNumber());
-    }
-    else {
-        throw LispError("The / procedure need at most 2 params.");
     }
 }
 
@@ -977,13 +786,11 @@ ValuePtr divide(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @return 绝对值
  */
 ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_one_number(params, "abs");
-    if (params[0]->isNumber()) {
-        return std::make_shared<NumericValue>(std::abs(*params[0]->asNumber()));
-    }
-    else {
-        throw LispError("The abs cannot receive a non-numeric value.");
-    }
+    auto checker = std::make_unique<ParamsChecker>(params, "abs", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->check();
+    return std::make_shared<NumericValue>(std::abs(*params[0]->asNumber()));
 }
 
 /**
@@ -995,7 +802,11 @@ ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throw LispError 如果底数和指数都为零，则抛出异常
  */
 ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_two_numbers(params, "expt");
+    auto checker = std::make_unique<ParamsChecker>(params, "expt", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
     if (*params[0]->asNumber() == 0 && *params[1]->asNumber() == 0) {
         throw LispError("Undefined! The base and the exponent cannot be zero in the same time.");
     }
@@ -1011,7 +822,11 @@ ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throw LispError 如果除数为零，则抛出异常
  */
 ValuePtr quotient(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_two_numbers(params, "quotient");
+    auto checker = std::make_unique<ParamsChecker>(params, "quotient", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
     double x = *params[0]->asNumber();
     double y = *params[1]->asNumber();
     if (y == 0) {
@@ -1034,7 +849,11 @@ ValuePtr quotient(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throw LispError 如果参数不是整数，则抛出异常
  */
 ValuePtr modulo(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_two_numbers(params, "modulo");
+    auto checker = std::make_unique<ParamsChecker>(params, "2", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
     double x = *params[0]->asNumber();
     double y = *params[1]->asNumber();
     if (static_cast<int>(x) != x || static_cast<int>(y) != y) {
@@ -1060,7 +879,11 @@ ValuePtr modulo(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throw LispError 如果参数不是整数，则抛出异常
  */
 ValuePtr remainder(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_two_numbers(params, "remainder");
+    auto checker = std::make_unique<ParamsChecker>(params, "remainder", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
     double x = *params[0]->asNumber();
     double y = *params[1]->asNumber();
     if (static_cast<int>(x) != x || static_cast<int>(y) != y) {
@@ -1127,12 +950,13 @@ bool isEqual(ValuePtr p1, ValuePtr p2, EvalEnv& env) {
  * @return 如果两个值相等，返回 true；否则返回 false
  */
 ValuePtr _eq(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    check_n_params(params, 2, "eq?");
+    auto checker = std::make_unique<ParamsChecker>(params, "eq?", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->check();
     if (params[0]->isSelfEvaluating() && params[1]->isSelfEvaluating()) {
         return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
     }
     else if (params[0]->isSymbol() && params[1]->isSymbol()) {
-        std::cout << "Both symbol." << std::endl;
         return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
     }
     else if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE && params[1]->getType() == ValueType::BUILTIN_PROC_VALUE) {
@@ -1157,7 +981,9 @@ ValuePtr _eq(const std::vector<ValuePtr>& params, EvalEnv& env) {
  * @return 如果两个值相等，返回 true；否则返回 false
  */
 ValuePtr _equal(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    check_n_params(params, 2, "equal?");
+    auto checker = std::make_unique<ParamsChecker>(params, "equal?", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->check();
     return std::make_shared<BooleanValue>(isEqual(params[0], params[1], env));
 }
 
@@ -1169,7 +995,9 @@ ValuePtr _equal(const std::vector<ValuePtr>& params, EvalEnv& env) {
  * @return 非操作的结果
  */
 ValuePtr _not(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_n_params(params, 1, "not");
+    auto checker = std::make_unique<ParamsChecker>(params, "not", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
     return std::make_shared<BooleanValue>(!change_to_bool(params[0]));
 }
 
@@ -1181,7 +1009,11 @@ ValuePtr _not(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @return 如果两个数值相等，返回 true；否则返回 false
  */
 ValuePtr __equal(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_two_numbers(params, "=");
+    auto checker = std::make_unique<ParamsChecker>(params, "=", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() == *params[1]->asNumber());
 }
 
@@ -1193,7 +1025,11 @@ ValuePtr __equal(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @return 如果第一个数值小于第二个数值，返回 true；否则返回 false
  */
 ValuePtr less(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_two_numbers(params, "<");
+    auto checker = std::make_unique<ParamsChecker>(params, "<", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() < *params[1]->asNumber());
 }
 
@@ -1205,7 +1041,11 @@ ValuePtr less(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @return 如果第一个数值大于第二个数值，返回 true；否则返回 false
  */
 ValuePtr larger(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_two_numbers(params, ">");
+    auto checker = std::make_unique<ParamsChecker>(params, ">", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() > *params[1]->asNumber());
 }
 
@@ -1217,7 +1057,11 @@ ValuePtr larger(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @return 如果第一个数值小于等于第二个数值，返回 true；否则返回 false
  */
 ValuePtr less_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_two_numbers(params, "<=");
+    auto checker = std::make_unique<ParamsChecker>(params, "<=", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() <= *params[1]->asNumber());
 }
 
@@ -1229,7 +1073,11 @@ ValuePtr less_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @return 如果第一个数值大于等于第二个数值，返回 true；否则返回 false
  */
 ValuePtr larger_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_two_numbers(params, ">=");
+    auto checker = std::make_unique<ParamsChecker>(params, ">=", 
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() >= *params[1]->asNumber());
 }
 
@@ -1242,7 +1090,10 @@ ValuePtr larger_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throw LispError 如果参数不是整数，则抛出异常
  */
 ValuePtr even(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_one_number(params, "even?");
+    auto checker = std::make_unique<ParamsChecker>(params, "even?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->check();
     if (static_cast<int>(*params[0]->asNumber()) != *params[0]->asNumber()) {
         throw LispError("The procedure even? cannot receive a non-integer value.");
     }
@@ -1258,7 +1109,10 @@ ValuePtr even(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throw LispError 如果参数不是整数，则抛出异常
  */
 ValuePtr odd(const std::vector<ValuePtr>& params, EvalEnv& env) {
-    check_one_number(params, "odd?");
+    auto checker = std::make_unique<ParamsChecker>(params, "odd?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->check();
     if (static_cast<int>(*params[0]->asNumber()) != *params[0]->asNumber()) {
         throw LispError("The procedure odd? cannot receive a non-integer value.");
     }
@@ -1273,84 +1127,22 @@ ValuePtr odd(const std::vector<ValuePtr>& params, EvalEnv& env) {
  * @return 如果参数等于零，返回 true；否则返回 false
  */
 ValuePtr zero(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_one_number(params, "zero?");
+    auto checker = std::make_unique<ParamsChecker>(params, "zero?", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() == 0);
 }
 
-ValuePtr _strlen(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_n_params(params, 1, "strlen");
-    if (params[0]->getType() == ValueType::STRING_VALUE) {
-        auto s = std::dynamic_pointer_cast<StringValue>(params[0])->getValue();
-        return std::make_shared<NumericValue>(static_cast<double>(s.size()));
-    }
-    else {
-        throw LispError("The strlen procedure need a string type value.");
-    }
-}
-
-ValuePtr _strappend(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_n_params(params, 2, "strappend");
-    if (params[0]->getType() != ValueType::STRING_VALUE || params[1]->getType() != ValueType::STRING_VALUE) {
-        throw LispError("The strappend procedure need string type values.");
-    }
-    auto s1 = std::dynamic_pointer_cast<StringValue>(params[0])->getValue();
-    auto s2 = std::dynamic_pointer_cast<StringValue>(params[1])->getValue();
-    return std::make_shared<StringValue>(s1 + s2);
-}
-
-ValuePtr _toString(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_n_params(params, 1, "toString");
-    return std::make_shared<StringValue>(params[0]->toString());
-}
-
-ValuePtr _atoi(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_n_params(params, 1, "atoi");
-    if (params[0]->getType() == ValueType::STRING_VALUE) {
-        try {
-            int result = atoi(std::dynamic_pointer_cast<StringValue>(params[0])->getValue().c_str());
-            return std::make_shared<NumericValue>(result);
-        }
-        catch (...) {
-            throw LispError("The string value should be a numer.");
-        }
-    }
-    else {
-        throw LispError("The atoi procedure need a string type value as the params.");
-    }
-}
-
-ValuePtr _at(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_n_params(params, 2, "at");
-    if (params[0]->isNil()) {
-        throw LispError("Out of range.");
-    }
-    if (!params[0]->isList()) {
-        throw LispError("The first param of the at procedure should be a list.");
-    }
-    if (!params[1]->isNumber()) {
-        throw LispError("The second param of the at procedure should be a number.");
-    }
-    double index = *params[1]->asNumber();
-    if (static_cast<int>(index) != index) {
-        throw LispError("The second param of the at procedure shoule be a integer.");
-    }
-    int i = static_cast<int>(index);
-    auto vec = params[0]->toVector();
-    if (i < 0 || i >= static_cast<int>(vec.size()) - 1) {
-        throw LispError("Out of range.");
-    }
-    return vec[i];
-}
-
 ValuePtr _read(const std::vector<ValuePtr>& params, EvalEnv&) {
-    check_n_params(params, 0, "reader");
-    if (reader->empty()) {
-        reader->readIn();
+    auto checker = std::make_unique<ParamsChecker>(params, "read", 
+        std::make_unique<EqualParamsNumberChecker>(0));
+    checker->check();
+    if (Reader::getInstance().empty()) {
+        Reader::getInstance().readIn();
     }
-    return reader->output();
+    return Reader::getInstance().output();
 }
-
-std::unique_ptr<Reader> reader = Reader::getInstance();
 
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
@@ -1401,10 +1193,5 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"map", &_map}, 
     {"filter", &filter}, 
     {"reduce", &_reduce}, 
-    {"strlen", &_strlen}, 
-    {"strappend", &_strappend}, 
-    {"toString", &_toString}, 
-    {"atoi", &_atoi}, 
-    {"at", &_at}, 
     {"read", &_read}
 };

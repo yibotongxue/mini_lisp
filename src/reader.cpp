@@ -3,9 +3,9 @@
 #include <iostream>
 #include <stack>
 
-std::unique_ptr<Reader> Reader::getInstance() {
-    Reader reader;
-    return std::make_unique<Reader>(std::move(reader));
+Reader& Reader::getInstance() {
+    static Reader reader;
+    return reader;
 }
 
 bool Reader::empty() const {
@@ -39,6 +39,10 @@ void Reader::readIn() {
 
         auto lineTokens = Tokenizer::tokenize(line);
         if (lineTokens.size() == 0) {
+            if (leftParen.empty()) {
+                std::cout << "... ";
+                continue;
+            }
             std::cout << "... " << std::string(leftParen.top(), ' ');
             indentationLevel = leftParen.top() + 1;
             continue;

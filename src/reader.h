@@ -11,7 +11,7 @@ private:
     
     Reader() : cache{} {}
 public:
-    static std::unique_ptr<Reader> getInstance();
+    static Reader& getInstance();
 
     bool empty() const;
 
@@ -19,7 +19,5 @@ public:
 
     ValuePtr output();
 };
-
-extern std::unique_ptr<Reader> reader;
 
 #endif

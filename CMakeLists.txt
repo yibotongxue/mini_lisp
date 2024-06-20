@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.24.2)
 project(mini_lisp)
 
-# 设置头文件目录
 include_directories(src)
 
 # 将源文件列表保存到变量中
@@ -11,10 +10,12 @@ set(SOURCES
     src/value.cpp
     src/parser.cpp
     src/reader.cpp
+    src/params_checker.cpp
     src/builtins.cpp
     src/forms.cpp
     src/eval_env.cpp
     src/model.cpp
+    src/rjsj_test.hpp
     src/main.cpp
 )
 
@@ -27,7 +28,6 @@ set_target_properties(
   PROPERTIES CXX_STANDARD 20
              CXX_STANDARD_REQUIRED ON
 )
-
 
 if(MINGW)
   target_compile_options(mini_lisp PRIVATE -fexceptions)

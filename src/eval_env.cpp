@@ -123,7 +123,7 @@ std::vector<ValuePtr>EvalEnv::evalList(ValuePtr expr) {
     std::vector<ValuePtr> vec = expr->toVector();
     if (vec.empty())
         return {};
-    for (int i = 1; i < vec.size() - 1; i++) {
+    for (int i = 1; i < static_cast<int>(vec.size()) - 1; i++) {
         result.push_back(eval(vec[i]));
     }
     return result;
