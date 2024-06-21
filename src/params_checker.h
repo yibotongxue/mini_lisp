@@ -51,10 +51,12 @@ public:
 
 class ParamTypeChecker {
 private:
-    const ValueType type;
+    std::vector<ValueType> types;
     int n;
+
+    std::string get_string() const;
 public:
-    ParamTypeChecker(const ValueType type, int n) : type{type}, n{n} {}
+    ParamTypeChecker(const std::vector<ValueType>& types, int n) : types{types}, n{n} {}
 
     void checkType(const std::vector<ValuePtr>& ptr, const std::string& name);
 };
@@ -68,7 +70,7 @@ private:
 public:
     ParamsChecker(const std::vector<ValuePtr>& params, const std::string& name, std::unique_ptr<ParamsNumberChecker> numberChecker);
 
-    void addTypeRequire(int n, const ValueType type);
+    void addTypeRequire(int n, const std::vector<ValueType>& requiredTypes);
 
     void check();
 };

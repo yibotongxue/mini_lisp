@@ -22,16 +22,46 @@
  * @throws LispError 如果参数包含非数值
  */
 ValuePtr add(const std::vector<ValuePtr>& params, EvalEnv&) {
-    double result = 0;
-    for (const auto& i :params) {
-        if (i->isNumber()) {
-            result += *i->asNumber();
-        }
-        else {
-            throw LispError("Cannot add a non-numeric value.");
+    auto checker = std::make_unique<ParamsChecker>(params, "+",
+        std::make_unique<LargerParamsNumberChecker>(0));
+    for (int i = 0; i < static_cast<int>(params.size()); i++) {
+        checker->addTypeRequire(i, {ValueType::RATIONAL_VALUE, ValueType::NUMERIC_VALUE});
+    }
+    checker->check();
+    bool allIsRational = true;
+    for (auto& param : params) {
+        if (!param->isRational()) {
+            allIsRational = false;
+            break;
         }
     }
-    return std::make_shared<NumericValue>(result);
+    if (allIsRational) {
+        int numerator = 0;
+        int denominator = 1;
+        for (auto& param : params) {
+            if (param->getType() == ValueType::NUMERIC_VALUE) {
+                numerator = denominator * *param->asNumber() + numerator;
+                continue;
+            }
+            int rhs_numerator = std::dynamic_pointer_cast<RationalValue>(param)->getNumerator();
+            int rhs_denominator = std::dynamic_pointer_cast<RationalValue>(param)->getDenominator();
+            numerator = denominator * rhs_numerator + rhs_denominator * numerator;
+            denominator = denominator * rhs_denominator;
+        }
+        int gcd = std::__gcd(numerator, denominator);
+        numerator /= gcd;
+        denominator /= gcd;
+        if (denominator == 1) 
+            return std::make_shared<NumericValue>(numerator);
+        return std::make_shared<RationalValue>(numerator, denominator);
+    }
+    else {
+        double value = 0;
+        for (auto& param : params) {
+            value += *param->asNumber();
+        }
+        return std::make_shared<NumericValue>(value);
+    }
 }
 
 /**
@@ -57,14 +87,41 @@ ValuePtr print(const std::vector<ValuePtr>& params, EvalEnv&) {
  * @throws LispError 如果参数包含非数值
  */
 ValuePtr multiply(const std::vector<ValuePtr>& params, EvalEnv&) {
+    auto checker = std::make_unique<ParamsChecker>(params, "*", 
+        std::make_unique<LargerParamsNumberChecker>(0));
+    for (int i = 0; i < params.size(); i++) {
+        checker->addTypeRequire(i, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    }
+    checker->check();
+    bool allIsRational = true;
+    for (int i = 0; i < params.size(); i++) {
+        if (!params[i]->isRational()) {
+            allIsRational = false;
+            break;
+        }
+    }
+    if (allIsRational) {
+        int result_numerator = 1;
+        int result_denominator = 1;
+        for (int i = 0; i < params.size(); i++) {
+            if (params[i]->getType() == ValueType::NUMERIC_VALUE) {
+                result_numerator = result_numerator * *params[i]->asNumber();
+                continue;
+            }
+            result_numerator = result_numerator * std::dynamic_pointer_cast<RationalValue>(params[i])->getNumerator();
+            result_denominator = result_denominator * std::dynamic_pointer_cast<RationalValue>(params[i])->getDenominator();
+        }
+        int gcd = std::__gcd(result_numerator, result_denominator);
+        result_numerator /= gcd;
+        result_denominator /= gcd;
+        if (result_denominator == 1) {
+            return std::make_shared<NumericValue>(result_numerator);
+        }
+        return std::make_shared<RationalValue>(result_numerator, result_denominator);
+    }
     double result = 1;
     for (const auto& i : params) {
-        if (i->isNumber()) {
-            result *= *i->asNumber();
-        }
-        else {
-            throw LispError("Cannot multiply a non-numeric value.");
-        }
+        result *= *i->asNumber();
     }
     return std::make_shared<NumericValue>(result);
 }
@@ -81,14 +138,45 @@ ValuePtr reduce(const std::vector<ValuePtr>& params, EvalEnv&) {
     std::vector<int> _range = {1, 2};
     auto checker = std::make_unique<ParamsChecker>(params, "-", 
         std::move(std::make_unique<RangeParamsNumberChecker>(_range)));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::RATIONAL_VALUE, ValueType::NUMERIC_VALUE});
+    checker->addTypeRequire(1, {ValueType::RATIONAL_VALUE, ValueType::NUMERIC_VALUE});
     checker->check();
     if (params.size() == 1) {
+        if (params[0]->getType() == ValueType::RATIONAL_VALUE) {
+            int numerator = -std::dynamic_pointer_cast<RationalValue>(params[0])->getNumerator();
+            int denominator = std::dynamic_pointer_cast<RationalValue>(params[0])->getDenominator();
+            return std::make_shared<RationalValue>(numerator, denominator);
+        }
         return std::make_shared<NumericValue>(-*params[0]->asNumber());
     }
     else {
-        return std::make_shared<NumericValue>(*params[0]->asNumber() - *params[1]->asNumber());
+        if (!params[0]->isRational() || !params[1]->isRational()) {
+            return std::make_shared<NumericValue>(*params[0]->asNumber() - *params[1]->asNumber());
+        }
+        int lhs_numerator{0}, lhs_denominator{1}, rhs_numerator{0}, rhs_denominator{1};
+        if (params[0]->getType() == ValueType::NUMERIC_VALUE) {
+            lhs_numerator = *params[0]->asNumber();
+        }
+        else {
+            lhs_numerator = std::dynamic_pointer_cast<RationalValue>(params[0])->getNumerator();
+            lhs_denominator = std::dynamic_pointer_cast<RationalValue>(params[0])->getDenominator();
+        }
+        if (params[1]->getType() == ValueType::NUMERIC_VALUE) {
+            rhs_numerator = *params[1]->asNumber();
+        }
+        else {
+            rhs_numerator = std::dynamic_pointer_cast<RationalValue>(params[1])->getNumerator();
+            rhs_denominator = std::dynamic_pointer_cast<RationalValue>(params[1])->getDenominator();
+        }
+        int result_numerator = rhs_denominator * lhs_numerator - lhs_denominator * rhs_numerator;
+        int result_denominator = lhs_denominator * rhs_denominator;
+        int gcd = std::__gcd(result_numerator, result_denominator);
+        result_numerator /= gcd;
+        result_denominator /= gcd;
+        if (result_denominator == 1) {
+            return std::make_shared<NumericValue>(result_numerator);
+        }
+        return std::make_shared<RationalValue>(result_numerator, result_denominator);
     }
 }
 
@@ -103,6 +191,7 @@ ValuePtr reduce(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
     auto checker = std::make_unique<ParamsChecker>(params, "apply",
         std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, {ValueType::BUILTIN_PROC_VALUE, ValueType::LAMBDA_VALUE});
     checker->check();
     if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
         if (params[1]->isList() || params[1]->isNil()) {
@@ -114,7 +203,7 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
             throw LispError("expected a list that can be applied on a procedure");
         }
     }
-    else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
+    else {
         if (params[1]->isList()) {
             auto vec = params[1]->toVector();
             vec.pop_back();
@@ -123,9 +212,6 @@ ValuePtr apply(const std::vector<ValuePtr>& params, EvalEnv& env) {
         else {
             throw LispError("exprceted a list that can be applied on a procecure");
         }
-    }
-    else {
-        throw LispError("expected a procedure that can be applied to arguments");
     }
 }
 
@@ -208,7 +294,7 @@ ValuePtr _exit(const std::vector<ValuePtr>& params, EvalEnv& env) {
     std::vector<int> _range = {0, 1};
     auto checker = std::make_unique<ParamsChecker>(params, "exit", 
         std::make_unique<RangeParamsNumberChecker>(_range));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     if (params.size() == 0) {
         std::exit(0);
@@ -250,6 +336,7 @@ ValuePtr atom(const std::vector<ValuePtr>& params, EvalEnv&) {
     checker->check();
     if (params[0]->getType() == ValueType::BOOLEAN_VALUE ||
         params[0]->getType() == ValueType::NUMERIC_VALUE ||
+        params[0]->getType() == ValueType::RATIONAL_VALUE ||
         params[0]->getType() == ValueType::STRING_VALUE ||
         params[0]->getType() == ValueType::SYMBOL_VALUE ||
         params[0]->getType() == ValueType::NIL_VALUE) {
@@ -331,6 +418,7 @@ ValuePtr list(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr number(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "number?", 
         std::make_unique<EqualParamsNumberChecker>(1));
+    checker->check();
     if (params[0]->isNumber()) {
         return std::make_shared<BooleanValue>(true);
     }
@@ -510,7 +598,7 @@ ValuePtr append(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr car(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "car", 
         std::make_unique<EqualParamsNumberChecker>(1));
-    checker->addTypeRequire(0, ValueType::PAIR_VALUE);
+    checker->addTypeRequire(0, {ValueType::PAIR_VALUE});
     checker->check();
     return std::dynamic_pointer_cast<PairValue>(params[0])->getLeft();
 }
@@ -526,7 +614,7 @@ ValuePtr car(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr cdr(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "cdr", 
         std::make_unique<EqualParamsNumberChecker>(1));
-    checker->addTypeRequire(0, ValueType::PAIR_VALUE);
+    checker->addTypeRequire(0, {ValueType::PAIR_VALUE});
     checker->check();
     return std::dynamic_pointer_cast<PairValue>(params[0])->getRight();
 }
@@ -595,6 +683,7 @@ ValuePtr _list(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
     auto checker = std::make_unique<ParamsChecker>(params, "map", 
         std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, {ValueType::BUILTIN_PROC_VALUE, ValueType::LAMBDA_VALUE});
     checker->check();
     if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
         std::vector<ValuePtr>result{};
@@ -614,7 +703,7 @@ ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
             throw LispError("The map procedure need list param as the second param.");
         }
     }
-    else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
+    else {
         std::vector<ValuePtr> result{};
         if (params[1]->isList()) {
             auto vec = params[1]->toVector();
@@ -631,9 +720,6 @@ ValuePtr _map(const std::vector<ValuePtr>& params, EvalEnv& env) {
         else {
             throw LispError("The map procedure need list param as the second param.");
         }
-    }
-    else {
-        throw LispError("The map procedure need procedure param as the first param.");
     }
 }
 
@@ -664,6 +750,7 @@ bool change_to_bool(const ValuePtr& ptr) {
 ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
     auto checker = std::make_unique<ParamsChecker>(params, "filter", 
         std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, {ValueType::BUILTIN_PROC_VALUE, ValueType::LAMBDA_VALUE});
     checker->check();
     if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
         if (params[1]->isList()) {
@@ -716,6 +803,7 @@ ValuePtr filter(const std::vector<ValuePtr>& params, EvalEnv& env) {
 ValuePtr _reduce(const std::vector<ValuePtr>& params, EvalEnv& env) {
     auto checker = std::make_unique<ParamsChecker>(params, "reduce", 
         std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, {ValueType::BUILTIN_PROC_VALUE, ValueType::LAMBDA_VALUE});
     checker->check();
     if (params[0]->getType() == ValueType::BUILTIN_PROC_VALUE) {
         if (params[1]->isNil()) {
@@ -724,29 +812,26 @@ ValuePtr _reduce(const std::vector<ValuePtr>& params, EvalEnv& env) {
         else if (!params[1]->isList()) {
             throw LispError("The reduce procedure need a list param as the second param.");
         }
-        if (std::dynamic_pointer_cast<NumericValue>(length({params[1]}, env))->getValue() == 1) {
+        if (*(length({params[1]}, env))->asNumber() == 1) {
             return car({params[1]}, env);
         }
         else {
             return std::dynamic_pointer_cast<BuiltinProcValue>(params[0])->getFunction()({car({params[1]}, env), _reduce({params[0], cdr({params[1]}, env)}, env)}, env);
         }
     }
-    else if (params[0]->getType() == ValueType::LAMBDA_VALUE) {
+    else {
         if (params[1]->isNil()) {
             throw LispError("The reduce procedure cannot receive a null list as the second param.");
         }
         else if (!params[1]->isList()) {
             throw LispError("The reduce procedure need a list param as the second param.");
         }
-        if (std::dynamic_pointer_cast<NumericValue>(length({params[1]}, env))->getValue() == 1) {
+        if (*(length({params[1]}, env))->asNumber() == 1) {
             return car({params[1]}, env);
         }
         else {
             return std::dynamic_pointer_cast<LambdaValue>(params[0])->apply({car({params[1]}, env), _reduce({params[0], cdr({params[1]}, env)}, env)});
         }
-    }
-    else {
-        throw LispError("The reduce procedure need a procedure param as the first param.");
     }
 }
 
@@ -761,18 +846,35 @@ ValuePtr divide(const std::vector<ValuePtr>& params, EvalEnv&) {
     std::vector<int> _range = {1, 2};
     auto checker = std::make_unique<ParamsChecker>(params, "/", 
         std::make_unique<RangeParamsNumberChecker>(_range));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     if (params.size() == 1) {
         if (*params[0]->asNumber() == 0) {
             throw LispError("Division by zero.");
+        }
+        if (params[0]->getType() == ValueType::RATIONAL_VALUE) {
+            int result_numerator = std::dynamic_pointer_cast<RationalValue>(params[0])->getDenominator();
+            int result_denominator = std::dynamic_pointer_cast<RationalValue>(params[0])->getNumerator();
+            return std::make_shared<RationalValue>(result_numerator, result_denominator);
         }
         return std::make_shared<NumericValue>(1.0 / *params[0]->asNumber());
     }
     else {
         if (*params[1]->asNumber() == 0) {
             throw LispError("Division by zero.");
+        }
+        if (params[0]->getType() == ValueType::RATIONAL_VALUE && params[1]->getType() == ValueType::RATIONAL_VALUE) {
+            int lhs_numerator = std::dynamic_pointer_cast<RationalValue>(params[0])->getNumerator();
+            int lhs_denominator = std::dynamic_pointer_cast<RationalValue>(params[0])->getDenominator();
+            int rhs_numerator = std::dynamic_pointer_cast<RationalValue>(params[1])->getNumerator();
+            int rhs_denominator = std::dynamic_pointer_cast<RationalValue>(params[1])->getDenominator();
+            int result_numerator = lhs_numerator * rhs_denominator;
+            int result_denominator = lhs_denominator * rhs_numerator;
+            int gcd = std::__gcd(result_numerator, result_denominator);
+            result_numerator /= gcd;
+            result_denominator /= gcd;
+            return std::make_shared<RationalValue>(result_numerator, result_denominator);
         }
         return std::make_shared<NumericValue>(*params[0]->asNumber() / *params[1]->asNumber());
     }
@@ -788,8 +890,13 @@ ValuePtr divide(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "abs", 
         std::make_unique<EqualParamsNumberChecker>(1));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
+    if (params[0]->getType() == ValueType::RATIONAL_VALUE) {
+        int result_numerator = std::abs(std::dynamic_pointer_cast<RationalValue>(params[0])->getNumerator());
+        int result_denominator = std::abs(std::dynamic_pointer_cast<RationalValue>(params[0])->getDenominator());
+        return std::make_shared<RationalValue>(result_numerator, result_denominator);
+    }
     return std::make_shared<NumericValue>(std::abs(*params[0]->asNumber()));
 }
 
@@ -804,8 +911,8 @@ ValuePtr abs(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "expt", 
         std::make_unique<EqualParamsNumberChecker>(2));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     if (*params[0]->asNumber() == 0 && *params[1]->asNumber() == 0) {
         throw LispError("Undefined! The base and the exponent cannot be zero in the same time.");
@@ -824,8 +931,8 @@ ValuePtr expt(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr quotient(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "quotient", 
         std::make_unique<EqualParamsNumberChecker>(2));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     double x = *params[0]->asNumber();
     double y = *params[1]->asNumber();
@@ -851,8 +958,8 @@ ValuePtr quotient(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr modulo(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "2", 
         std::make_unique<EqualParamsNumberChecker>(2));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     double x = *params[0]->asNumber();
     double y = *params[1]->asNumber();
@@ -881,8 +988,8 @@ ValuePtr modulo(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr remainder(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "remainder", 
         std::make_unique<EqualParamsNumberChecker>(2));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     double x = *params[0]->asNumber();
     double y = *params[1]->asNumber();
@@ -907,6 +1014,12 @@ namespace{
  * @throw LispError 如果存在未实现的类型，则抛出异常
  */
 bool isEqual(ValuePtr p1, ValuePtr p2, EvalEnv& env) {
+    if (p1->getType() == ValueType::RATIONAL_VALUE && p2->getType() == ValueType::NUMERIC_VALUE) {
+        return *p1->asNumber() == *p2->asNumber();
+    }
+    else if (p1->getType() == ValueType::NUMERIC_VALUE && p2->getType() == ValueType::RATIONAL_VALUE) {
+        return *p1->asNumber() == *p2->asNumber();
+    }
     if (p1->getType() != p2->getType()) {
         return false;
     }
@@ -916,6 +1029,10 @@ bool isEqual(ValuePtr p1, ValuePtr p2, EvalEnv& env) {
         }
         else if (p1->getType() == ValueType::NUMERIC_VALUE) {
             return std::dynamic_pointer_cast<NumericValue>(p1)->getValue() == std::dynamic_pointer_cast<NumericValue>(p2)->getValue();
+        }
+        else if (p1->getType() == ValueType::RATIONAL_VALUE) {
+            return (std::dynamic_pointer_cast<RationalValue>(p1)->getNumerator() == std::dynamic_pointer_cast<RationalValue>(p2)->getNumerator())
+                     && (std::dynamic_pointer_cast<RationalValue>(p1)->getDenominator() == std::dynamic_pointer_cast<RationalValue>(p2)->getDenominator());
         }
         else if (p1->getType() == ValueType::STRING_VALUE) {
             return std::dynamic_pointer_cast<StringValue>(p1)->getValue() == std::dynamic_pointer_cast<StringValue>(p2)->getValue();
@@ -1011,8 +1128,8 @@ ValuePtr _not(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr __equal(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "=", 
         std::make_unique<EqualParamsNumberChecker>(2));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() == *params[1]->asNumber());
 }
@@ -1027,8 +1144,8 @@ ValuePtr __equal(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr less(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "<", 
         std::make_unique<EqualParamsNumberChecker>(2));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() < *params[1]->asNumber());
 }
@@ -1043,8 +1160,8 @@ ValuePtr less(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr larger(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, ">", 
         std::make_unique<EqualParamsNumberChecker>(2));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() > *params[1]->asNumber());
 }
@@ -1059,8 +1176,8 @@ ValuePtr larger(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr less_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "<=", 
         std::make_unique<EqualParamsNumberChecker>(2));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() <= *params[1]->asNumber());
 }
@@ -1075,8 +1192,8 @@ ValuePtr less_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr larger_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, ">=", 
         std::make_unique<EqualParamsNumberChecker>(2));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
-    checker->addTypeRequire(1, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() >= *params[1]->asNumber());
 }
@@ -1092,7 +1209,7 @@ ValuePtr larger_or_equal(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr even(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "even?", 
         std::make_unique<EqualParamsNumberChecker>(1));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     if (static_cast<int>(*params[0]->asNumber()) != *params[0]->asNumber()) {
         throw LispError("The procedure even? cannot receive a non-integer value.");
@@ -1111,7 +1228,7 @@ ValuePtr even(const std::vector<ValuePtr>& params, EvalEnv&) {
 ValuePtr odd(const std::vector<ValuePtr>& params, EvalEnv& env) {
     auto checker = std::make_unique<ParamsChecker>(params, "odd?", 
         std::make_unique<EqualParamsNumberChecker>(1));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     if (static_cast<int>(*params[0]->asNumber()) != *params[0]->asNumber()) {
         throw LispError("The procedure odd? cannot receive a non-integer value.");
@@ -1129,7 +1246,7 @@ ValuePtr odd(const std::vector<ValuePtr>& params, EvalEnv& env) {
 ValuePtr zero(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "zero?", 
         std::make_unique<EqualParamsNumberChecker>(1));
-    checker->addTypeRequire(0, ValueType::NUMERIC_VALUE);
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE, ValueType::RATIONAL_VALUE});
     checker->check();
     return std::make_shared<BooleanValue>(*params[0]->asNumber() == 0);
 }

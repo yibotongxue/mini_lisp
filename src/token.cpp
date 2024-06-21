@@ -63,6 +63,10 @@ std::string IdentifierToken::toString() const {
     return "(IDENTIFIER " + name + ")";
 }
 
+std::string RationalToken::toString() const {
+    return std::to_string(numerator) + "/" + std::to_string(denominator);
+}
+
 std::ostream& operator<<(std::ostream& os, const Token& token) {
     return os << token.toString();
 }

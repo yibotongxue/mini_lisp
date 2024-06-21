@@ -6,6 +6,8 @@
 #include <iostream>
 #include <sstream>
 #include <typeinfo>
+#include <assert.h>
+#include <algorithm>
 #include "eval_env.h"
 
 LambdaValue::LambdaValue(const std::vector<std::string>& params, const std::vector<ValuePtr>& body, std::shared_ptr<EvalEnv> env)
@@ -33,10 +35,11 @@ bool Value::isNil() const {
 */
 bool Value::isSelfEvaluating() const {
     if(type == ValueType::BOOLEAN_VALUE ||
-       type == ValueType::NUMERIC_VALUE ||
        type == ValueType::STRING_VALUE ||
        type == ValueType::BUILTIN_PROC_VALUE || 
-       type == ValueType::LAMBDA_VALUE)
+       type == ValueType::LAMBDA_VALUE || 
+       type == ValueType::RATIONAL_VALUE ||
+       type == ValueType::NUMERIC_VALUE)
         return true;
     return false;
 }
@@ -94,8 +97,21 @@ bool Value::isSymbol() const {
  * @note 这是一个只读函数，不会改变对象的内容。
  */
 bool Value::isNumber() const {
-    if (type == ValueType::NUMERIC_VALUE) 
+    if (type == ValueType::RATIONAL_VALUE ||
+        type == ValueType::NUMERIC_VALUE) 
         return true;
+    return false;
+}
+
+bool Value::isRational() const {
+    if (type == ValueType::RATIONAL_VALUE)
+        return true;
+    else if (type == ValueType::NUMERIC_VALUE) {
+        double value = *this->asNumber();
+        if (static_cast<int>(value) == value) {
+            return true;
+        }
+    }
     return false;
 }
 
@@ -126,11 +142,10 @@ std::optional<double> Value::asNumber() const {
     return std::nullopt;
 }
 
-/**
- * @brief 将值作为数返回，这里处理值类型就是数类型的情况
- * 
- * @return 返回用数的值构造的 std::optional<double> 对象
-*/
+std::optional<double> RationalValue::asNumber() const {
+    return { static_cast<double>(numerator) / static_cast<double>(denominator) };
+}
+
 std::optional<double> NumericValue::asNumber() const {
     return { value };
 }
@@ -144,14 +159,16 @@ std::string BooleanValue::toString() const {
     return value? "#t" : "#f";
 }
 
-/**
- * @brief 获取数值的外部表示的函数
- * 
- * @return 返回数值的字符串表示，如果是整数，则直接返回整数的字符串，否则返回带小数点的浮点数的字符串
-*/
+std::string RationalValue::toString() const {
+    if (denominator == 1) {
+        return std::to_string(numerator);
+    }
+    return std::to_string(numerator) + "/" + std::to_string(denominator);
+}
+
 std::string NumericValue::toString() const {
-    if(int(value) == value)
-        return std::to_string(int(value));
+    if (static_cast<int>(value) == value)
+        return std::to_string(static_cast<int>(value));
     return std::to_string(value);
 }
 
@@ -266,11 +283,10 @@ std::vector<ValuePtr> BooleanValue::toVector() const {
     return { std::make_shared<BooleanValue>(*this) };
 }
 
-/**
- * @brief 将NumericValue转换为包含自身的向量。
- * 
- * @return 含有NumericValue的向量
- */
+std::vector<ValuePtr> RationalValue::toVector() const {
+    return { std::make_shared<RationalValue>(*this) };
+}
+
 std::vector<ValuePtr> NumericValue::toVector() const {
     return { std::make_shared<NumericValue>(*this) };
 }

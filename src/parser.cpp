@@ -37,11 +37,7 @@ ValuePtr Parser::parse() {
     auto token = std::move(tokens.front()); // 从 tokens 中获取第一个词法标记
     tokens.pop_front(); // 移除已处理的词法标记
 
-    if(token->getType() == TokenType::NUMERIC_LITERAL) { // 如果词法标记是数值字面量
-        auto value = static_cast<NumericLiteralToken&>(*token).getValue(); // 获取数值字面量的值
-        return std::make_shared<NumericValue>(value); // 返回数值类型值对象的共享指针
-    }
-    else if(token->getType() == TokenType::BOOLEAN_LITERAL) { // 如果词法标记是布尔字面量
+    if(token->getType() == TokenType::BOOLEAN_LITERAL) { // 如果词法标记是布尔字面量
         auto value = static_cast<BooleanLiteralToken&>(*token).getValue(); // 获取布尔字面量的值
         return std::make_shared<BooleanValue>(value); // 返回布尔类型对象的共享指针
     }
@@ -52,6 +48,15 @@ ValuePtr Parser::parse() {
     else if(token->getType() == TokenType::IDENTIFIER) { // 如果词法标记是标识符
         auto value = static_cast<IdentifierToken&>(*token).getName(); // 获取标识符的名称
         return std::make_shared<SymbolValue>(value); // 返回符号类型值对象的共享指针
+    }
+    else if (token->getType() == TokenType::NUMERIC_LITERAL) {
+        auto value = static_cast<NumericLiteralToken&>(*token).getValue();
+        return std::make_shared<NumericValue>(value);
+    }
+    else if (token->getType() == TokenType::RATIONAL) {
+        int numerator = static_cast<RationalToken&>(*token).getNumerator();
+        int denominator = static_cast<RationalToken&>(*token).getDenominator();
+        return std::make_shared<RationalValue>(numerator, denominator);
     }
     else if(token->getType() == TokenType::LEFT_PAREN) { // 如果词法标记是左括号
         return this->parseTails(); // 递归调用 S-表达式的函数并返回结果

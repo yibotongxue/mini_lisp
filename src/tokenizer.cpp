@@ -3,6 +3,7 @@
 #include <cctype>
 #include <set>
 #include <stdexcept>
+#include <algorithm>
 
 #include "error.h"
 
@@ -60,6 +61,71 @@ TokenPtr Tokenizer::nextToken(int& pos) {
             auto text = input.substr(start, pos - start);
             if (text == ".") {
                 return Token::dot();
+            }
+            if (text[0] == '.') {
+                bool allIsDigit = true;
+                for (int i = 1; i < text.size(); i++) {
+                    if (!std::isdigit(text[i])) {
+                        allIsDigit = false;
+                        break;
+                    }
+                }
+                if (allIsDigit) {
+                    try {
+                        return std::make_unique<NumericLiteralToken>(std::stod(text));
+                    } catch (std::invalid_argument& e) {
+
+                    }
+                }
+            }
+            else if (std::isdigit(text[0]) || text[0] == '+' || text[0] == '-') {
+                int nextNotDigitPos = 1;
+                while (nextNotDigitPos < text.size()) {
+                    if (!std::isdigit(text[nextNotDigitPos])) {
+                        break;
+                    }
+                    nextNotDigitPos++;
+                }
+                if (nextNotDigitPos >= text.size()) {
+                    try {
+                        return std::make_unique<NumericLiteralToken>(std::stod(text));
+                    } catch (std::invalid_argument& e) {
+
+                    }
+                }
+                else if (text[nextNotDigitPos] == '/') {
+                    char* new_text = new char[nextNotDigitPos + 1];
+                    for (int i = 0; i < nextNotDigitPos; i++) {
+                        new_text[i] = text[i];
+                    }
+                    new_text[nextNotDigitPos] = '\0';
+                    int numerator = std::atoi(new_text);
+                    delete []new_text;
+                    new_text = new char[static_cast<int>(text.size()) - nextNotDigitPos];
+                    int len = 0;
+                    for (int i = 0; i < static_cast<int>(text.size()) - nextNotDigitPos - 1; i++) {
+                        if (text[nextNotDigitPos + i + 1] == ' ' || text[i + nextNotDigitPos + 1] == '\n') {
+                            break;
+                        }
+                        len++;
+                        if (!std::isdigit(text[i + nextNotDigitPos + 1])) {
+                            throw SyntaxError("Unimplement.");
+                        }
+                        new_text[i] = text[i + nextNotDigitPos + 1];
+                    }
+                    new_text[len] = '\0';
+                    int denominator = std::atoi(new_text);
+                    if (denominator == 0) {
+                        throw SyntaxError("The denominator should not be zero!");
+                    }
+                    int gcd = std::__gcd(numerator, denominator);
+                    if (gcd == denominator) {
+                        return std::make_unique<NumericLiteralToken>(static_cast<double>(numerator / denominator));
+                    }
+                    else {
+                        return std::make_unique<RationalToken>(numerator / gcd, denominator / gcd);
+                    }
+                }
             }
             if (std::isdigit(text[0]) || text[0] == '+' || text[0] == '-' || text[0] == '.') {
                 try {

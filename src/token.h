@@ -17,6 +17,7 @@ enum class TokenType {
     NUMERIC_LITERAL,
     STRING_LITERAL,
     IDENTIFIER,
+    RATIONAL
 };
 
 class Token;
@@ -92,6 +93,24 @@ public:
     const std::string& getName() const {
         return name;
     }
+    std::string toString() const override;
+};
+
+class RationalToken : public Token {
+private:
+	int numerator;
+	int denominator;
+public:
+    RationalToken(int numerator, int denominator) : Token(TokenType::RATIONAL), numerator{numerator}, denominator{denominator} {}
+
+    int getNumerator() const {
+        return numerator;
+    }
+
+    int getDenominator() const {
+        return denominator;
+    }
+    
     std::string toString() const override;
 };
 

@@ -15,8 +15,11 @@ std::string change_to_string(const ValueType& type) {
     else if (type == ValueType::NIL_VALUE) {
         return "nil";
     }
+    else if (type == ValueType::RATIONAL_VALUE) {
+        return "rational";
+    }
     else if (type == ValueType::NUMERIC_VALUE) {
-        return "numeric";
+        return "number";
     }
     else if (type == ValueType::PAIR_VALUE) {
         return "pair";
@@ -26,6 +29,9 @@ std::string change_to_string(const ValueType& type) {
     }
     else if (type == ValueType::SYMBOL_VALUE) {
         return "symbol";
+    }
+    else if (type == ValueType::RATIONAL_VALUE) {
+        return "rational";
     }
     else {
         throw std::runtime_error("Unimplement");
@@ -91,22 +97,50 @@ void RangeParamsNumberChecker::numberCheck(const std::vector<ValuePtr>& params, 
     return;
 }
 
+std::string ParamTypeChecker::get_string() const {
+    int _size = static_cast<int>(types.size());
+    if (_size <= 0) {
+        throw std::runtime_error("Unimplement.");
+    }
+    if (_size == 1) {
+        return change_to_string(types[0]);
+    }
+    else if (_size == 2) {
+        return change_to_string(types[0]) + " or " + change_to_string(types[1]);
+    }
+    else {
+        std::string result;
+        for (int i = 0; i < _size - 2; i++) {
+            result += change_to_string(types[i]) + ", ";
+        }
+        result += change_to_string(types[_size - 2]) + " or " + change_to_string(types[_size - 1]);
+        return result;
+    }
+}
+
 void ParamTypeChecker::checkType(const std::vector<ValuePtr>& params, const std::string& name) {
     auto ptr = params[n];
-    if (ptr->getType() != type) {
-        throw LispError("The " + std::to_string(n) + " param of the " + name + " procedure should be a " +
-         change_to_string(type) + " type value, given a " + change_to_string(ptr->getType()) + " type.");
+    bool inTypes = false;
+    for (auto& type : types) {
+        if (ptr->getType() == type) {
+            inTypes = true;
+            break;
+        }
     }
-    assert(ptr->getType() == type);
+    if (!inTypes) {
+        throw LispError("The " + std::to_string(n) + " param of the " + name + " procedure should be a " +
+         get_string() + " type value, given a " + change_to_string(ptr->getType()) + " type.");
+    }
+    assert(inTypes);
     return;
 }
 
 ParamsChecker::ParamsChecker(const std::vector<ValuePtr>& params, const std::string& name, std::unique_ptr<ParamsNumberChecker> numberChecker) 
             : params{params}, name{name}, numberChecker{std::move(numberChecker)}, typeCheckers{} {}
 
-void ParamsChecker::addTypeRequire(int n, const ValueType type) {
+void ParamsChecker::addTypeRequire(int n, const std::vector<ValueType>& requiredTypes) {
     if (n >= 0 && n < params.size())
-        typeCheckers.push_back(std::make_shared<ParamTypeChecker>(type, n));
+        typeCheckers.push_back(std::make_shared<ParamTypeChecker>(requiredTypes, n));
 }
 
 void ParamsChecker::check() {

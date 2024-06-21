@@ -15,13 +15,14 @@
 */
 enum class ValueType {
     BOOLEAN_VALUE,  // 布尔类型
-    NUMERIC_VALUE,  // 数类型
+    RATIONAL_VALUE, // 有理分数类型
+    NUMERIC_VALUE, // 实数类型
     STRING_VALUE,   // 字符串类型
     NIL_VALUE,      // 空表类型
     SYMBOL_VALUE,   // 符号类型
     PAIR_VALUE,      // 对子类型
-    BUILTIN_PROC_VALUE,                // 过程类型
-    LAMBDA_VALUE
+    BUILTIN_PROC_VALUE,  // 过程类型
+    LAMBDA_VALUE, // Lambda 类型
 };
 
 class Value;   // 值类
@@ -136,6 +137,8 @@ public:
      */
     bool isNumber() const;
 
+    bool isRational() const;
+
     /**
      * @brief 这个函数用来获取值得符号
      * 
@@ -239,71 +242,47 @@ public:
     virtual std::vector<ValuePtr> toVector() const override;
 };
 
-/**
- * @brief 这是数值类型值的类，表示 Mini-Lisp 中的数值类型，是基类 Value 的派生类
- * 
- * 数值类型值类用于表示 Mini-Lisp 中的数值类型数据。它派生自基类 Value，因此具有基类定义的通用接口和行为。
- * 
- * 这个类定义了数值类型值的属性和行为：
- * - value 属性存储数值本身。
- * - 提供了构造函数用于直接构造和复制构造数值类型值。
- * - 提供了获取数值的接口 getValue()。
- * - 重写了基类的纯虚函数 toString()，用于获取数值的外部表示。
- * 
- * @note 这个类实现了基类 Value 的纯虚函数 toString()，因此可以用于创建对象。
- * @note 这个类没有重载基类的虚函数 asSymbol()，仍使用基类的函数。
- * @note 删除了默认构造函数，因为数值类型必须具有明确的数值来构造对象，不允许无参数构造函数。
-*/
-class NumericValue : public Value {
-
+class RationalValue : public Value {
 private:
-    double value; // 存储数值
-
+    int numerator;
+    int denominator;
 public:
-    /**
-     * @brief 删除的默认构造函数
-     * 
-     * 数值类型值对象必须具有明确的数值来构造，因此禁止无参数的默认构造函数。
-    */
-    NumericValue() = delete;
+    RationalValue(int numerator, int denominator) : Value(ValueType::RATIONAL_VALUE), numerator{numerator}, denominator{denominator} {
+        if (this->denominator < 0) {
+            this->numerator *= -1;
+            this->denominator *= -1;
+        }
+    }
 
-    /**
-     * @brief 构造函数，用给定的数值创建 NumericValue 对象
-     * 
-     * @param value 数值
-    */
-    NumericValue(double value) : Value{ValueType::NUMERIC_VALUE}, value{value} {}
+    virtual ~RationalValue() = default;
 
-    /**
-     * @brief 复制构造函数，从另一个 NumericValue 对象复制数值
-     * 
-     * @param n 要复制的 NumericValue 对象
-    */
-    NumericValue(const NumericValue& n) : Value{n}, value{n.value} {}
+    int getNumerator() const {
+        return numerator;
+    }
 
-    /**
-     * @brief 虚析构函数
-     * 
-     * 定义虚的析构函数，保证在对象被销毁时，正确调用派生类的析构函数，释放相关资源。
-    */
+    int getDenominator() const {
+        return denominator;
+    }
+
+    virtual std::string toString() const override;
+
+    virtual std::optional<double> asNumber() const override;
+
+    virtual std::vector<ValuePtr> toVector() const override;
+};
+
+class NumericValue : public Value {
+private:
+    double value;
+public:
+    NumericValue(double value) : Value(ValueType::NUMERIC_VALUE), value{value} {}
+
     virtual ~NumericValue() = default;
 
-    /**
-     * @brief 获取数值的函数
-     * 
-     * @return 返回数值
-    */
     double getValue() const {
         return value;
     }
 
-    /**
-     * @brief 获取数值的外部表示的函数
-     * 
-     * @return 返回数值的字符串表示
-     * 
-     * @note 这是从基类继承来的函数，对基类的 toString() 进行了重载，实现了基类的纯虚函数
-    */
     virtual std::string toString() const override;
 
     virtual std::optional<double> asNumber() const override;
