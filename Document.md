@@ -109,3 +109,13 @@ mini_lisp C:/path/to/the/test.scm
 ```powershell
 Error in line 3 to line 5 : Unimplement
 ```
+
+### 6. 类型转换函数
+
+本 `Mini_Lisp` 解释器实现了部分的类型转换的内置过程，包括 `number->string` 等。使用时在后面加上需要转换的表达式。比如
+
+```lisp
+(number->string 1) ; 返回 "1"
+(number->integer 2.3) ; 返回 2
+```
+

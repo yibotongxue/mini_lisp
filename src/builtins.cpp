@@ -1251,6 +1251,14 @@ ValuePtr zero(const std::vector<ValuePtr>& params, EvalEnv&) {
     return std::make_shared<BooleanValue>(*params[0]->asNumber() == 0);
 }
 
+/**
+ * @brief 从标准输入或输入缓存读取数据
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 如果返回从标准输入或输入缓存读取的数据
+ * @throw 如果参数数目不为0
+ */
 ValuePtr _read(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "read", 
         std::make_unique<EqualParamsNumberChecker>(0));
@@ -1261,6 +1269,14 @@ ValuePtr _read(const std::vector<ValuePtr>& params, EvalEnv&) {
     return Reader::getInstance().output();
 }
 
+/**
+ * @brief 根据给定的分子、分母生成有理数
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 生成的有理数
+ * @throw 如果参数不符合要求，或是分母为0
+ */
 ValuePtr makeRational(const std::vector<ValuePtr>& params, EvalEnv&) {
     auto checker = std::make_unique<ParamsChecker>(params, "make-rational",
         std::make_unique<EqualParamsNumberChecker>(2));
@@ -1288,6 +1304,39 @@ ValuePtr makeRational(const std::vector<ValuePtr>& params, EvalEnv&) {
         i_denominator *= -1;
     }
     return std::make_shared<RationalValue>(i_numerator, i_denominator);
+}
+
+/**
+ * @brief 将实数转换为整数
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用（
+ * @return 转换后的整数
+ * @throw 如果参数不符合要求
+ */
+ValuePtr Real_Integer(const std::vector<ValuePtr>& params, EvalEnv&) {
+    auto checker = std::make_unique<ParamsChecker>(params, "real->integer", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE});
+    checker->check();
+    return std::make_shared<NumericValue>(static_cast<double>
+        (static_cast<int>(*params[0]->asNumber())));
+}
+
+/**
+ * @brief 将数字转换为字符串
+ * 
+ * @param params 参数列表
+ * @param env 求值环境（未使用）
+ * @return 数字的字符串表示
+ * @throw 如果参数不符合要求
+ */
+ValuePtr Number_String(const std::vector<ValuePtr>& params, EvalEnv&) {
+    auto checker = std::make_unique<ParamsChecker>(params, "number->string", 
+        std::make_unique<EqualParamsNumberChecker>(1));
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE});
+    checker->check();
+    return std::make_shared<StringValue>(params[0]->toString());
 }
 
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
@@ -1340,5 +1389,7 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"filter", &filter}, 
     {"reduce", &_reduce}, 
     {"read", &_read}, 
-    {"make-rational", &makeRational}
+    {"make-rational", &makeRational}, 
+    {"real->integer", &Real_Integer}, 
+    {"number->string", &Number_String}
 };
