@@ -39,7 +39,8 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
         env.defineBinding(first_Name, env.eval(args[2]));
 
         return std::make_shared<NilValue>();
-    } else if (std::dynamic_pointer_cast<PairValue>(args[1])->isList()) {  // 定义函数
+    } else if (std::dynamic_pointer_cast<PairValue>(args[1])
+                   ->isList()) {  // 定义函数
         if (!args[1]->isList()) {
             throw LispError("Malformed define.");
         }
@@ -50,18 +51,16 @@ ValuePtr defineForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
             throw LispError("Malformed define.");
         }
         auto paramPtrs = args[1]->toVector();
-        for (int i = 1; i < static_cast<int>(paramPtrs.size()) - 1;
-             i++) {
+        for (int i = 1; i < static_cast<int>(paramPtrs.size()) - 1; i++) {
             if (paramPtrs[i]->isSymbol()) {
                 params.push_back(*paramPtrs[i]->asSymbol());
             }
         }
         std::vector<ValuePtr> functionBody{args.begin() + 2,
                                            args.end() - 1};  // 函数体
-        env.defineBinding(
-            *functionName->asSymbol(),
-            std::make_shared<LambdaValue>(params, functionBody,
-                                          env.shared_from_this()));
+        env.defineBinding(*functionName->asSymbol(),
+                          std::make_shared<LambdaValue>(
+                              params, functionBody, env.shared_from_this()));
         return std::make_shared<NilValue>();
     } else {
         throw LispError("Malformed define.");
@@ -184,9 +183,7 @@ ValuePtr lambdaForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     for (int i = 2; i < static_cast<int>(args.size()) - 1; i++) {
         body.push_back(args[i]);
     }
-    return std::make_shared<LambdaValue>(params, body,
-                                         env.shared_from_this());
-
+    return std::make_shared<LambdaValue>(params, body, env.shared_from_this());
 }
 
 /**
@@ -214,8 +211,7 @@ ValuePtr condForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
             if (i != static_cast<int>(args.size()) - 2) {
                 throw LispError("THe else is not in the last.");
             }
-            for (int i = 1; i < static_cast<int>(new_args.size()) - 1;
-                 i++) {
+            for (int i = 1; i < static_cast<int>(new_args.size()) - 1; i++) {
                 results.push_back(env.eval(new_args[i]));  // 逐个执行
             }
             if (results.empty()) {
@@ -287,8 +283,7 @@ ValuePtr letForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
             if (vec[0]->isSymbol()) {
                 params.push_back(*vec[0]->asSymbol());
             } else {
-                throw LispError(
-                    "The param name should be a symbol type.");
+                throw LispError("The param name should be a symbol type.");
             }
             new_args.push_back(env.eval(vec[1]));
         } else {
@@ -301,7 +296,6 @@ ValuePtr letForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     auto lambda =
         std::make_shared<LambdaValue>(params, body, env.shared_from_this());
     return lambda->apply(new_args);
-
 }
 
 namespace {
@@ -338,8 +332,7 @@ ValuePtr makeList(std::vector<ValuePtr>& vec, int start) {
 ValuePtr quasiquoteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     if (args.size() <= 2) {
         throw LispError("The quasiquote form need a arg.");
-    } 
-    else if (args.size() > 3) {
+    } else if (args.size() > 3) {
         throw LispError("The quasiquote form need 1 args.");
     }
     auto vec = args[1]->toVector();
@@ -361,10 +354,45 @@ ValuePtr quasiquoteForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
     }
 }
 
+ValuePtr whenForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    if (args.size() <= 2) {
+        throw LispError("The when form need condition.");
+    }
+    if (args.size() == 3) {
+        throw LispError("The when form need function body.");
+    }
+    auto condition = args[1];
+    if (!change_to_bool(condition, env)) {
+        return std::make_shared<NilValue>();
+    }
+    for (int i = 2; i < static_cast<int>(args.size()) - 1; i++) {
+        env.eval(args[i]);
+    }
+    return std::make_shared<NilValue>();
+}
+
+ValuePtr unlessForm(const std::vector<ValuePtr>& args, EvalEnv& env) {
+    if (args.size() <= 2) {
+        throw LispError("The unless form need condition.");
+    }
+    if (args.size() == 3) {
+        throw LispError("The unless form need function body.");
+    }
+    auto condition = args[1];
+    if (change_to_bool(condition, env)) {
+        return std::make_shared<NilValue>();
+    }
+    for (int i = 2; i < static_cast<int>(args.size()) - 1; i++) {
+        env.eval(args[i]);
+    }
+    return std::make_shared<NilValue>();
+}
+
 // 特殊形式的无序映射
 std::unordered_map<std::string, SpecialFormType*> SPECIAL_FORMS{
     {"define", defineForm}, {"quote", quoteForm},
     {"if", ifForm},         {"and", andForm},
     {"or", orForm},         {"lambda", lambdaForm},
     {"cond", condForm},     {"begin", beginForm},
-    {"let", letForm},       {"quasiquote", quasiquoteForm}};
+    {"let", letForm},       {"quasiquote", quasiquoteForm},
+    {"when", whenForm},     {"unless", unlessForm}};

@@ -1261,6 +1261,35 @@ ValuePtr _read(const std::vector<ValuePtr>& params, EvalEnv&) {
     return Reader::getInstance().output();
 }
 
+ValuePtr makeRational(const std::vector<ValuePtr>& params, EvalEnv&) {
+    auto checker = std::make_unique<ParamsChecker>(params, "make-rational",
+        std::make_unique<EqualParamsNumberChecker>(2));
+    checker->addTypeRequire(0, {ValueType::NUMERIC_VALUE});
+    checker->addTypeRequire(1, {ValueType::NUMERIC_VALUE});
+    checker->check();
+    double d_numerator = *params[0]->asNumber();
+    int i_numerator = static_cast<int>(d_numerator);
+    if (i_numerator != d_numerator) {
+        throw LispError("The numerator should be a integer.");
+    }
+    double d_denominator = *params[1]->asNumber();
+    int i_denominator = static_cast<int>(d_denominator);
+    if (d_denominator == 0) {
+        throw LispError("The denominator should not be zero!");
+    }
+    if (static_cast<int>(d_denominator) != d_denominator) {
+        throw LispError("The denominator should be a integer.");
+    }
+    int gcd = std::__gcd(i_numerator, i_denominator);
+    i_numerator /= gcd;
+    i_denominator / gcd;
+    if (i_denominator < 0) {
+        i_numerator *= -1;
+        i_denominator *= -1;
+    }
+    return std::make_shared<RationalValue>(i_numerator, i_denominator);
+}
+
 std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"+", &add},
     {"*", &multiply}, 
@@ -1310,5 +1339,6 @@ std::unordered_map<std::string, BuiltinFuncType*> innerSymbolTable{
     {"map", &_map}, 
     {"filter", &filter}, 
     {"reduce", &_reduce}, 
-    {"read", &_read}
+    {"read", &_read}, 
+    {"make-rational", &makeRational}
 };

@@ -103,6 +103,15 @@ bool Value::isNumber() const {
     return false;
 }
 
+/**
+ * @brief 检查当前 Value 对象是否表示有理数。
+ * 
+ * @details 如果 Value 对象的类型为 ValueType::RATIONAL_VALUE，则返回 true。
+ *          否则，如果类型为 ValueType::NUMERIC_VALUE，将其转换为 double，
+ *          并检查是否为整数。如果是整数，则返回 true；否则返回 false。
+ * 
+ * @return 如果表示有理数，返回 true；否则返回 false
+ */
 bool Value::isRational() const {
     if (type == ValueType::RATIONAL_VALUE)
         return true;
@@ -142,10 +151,20 @@ std::optional<double> Value::asNumber() const {
     return std::nullopt;
 }
 
+/**
+ * @brief 将有理数表示转换为 double 类型的数值。
+ * 
+ * @return 有理数的浮点数表示
+ */
 std::optional<double> RationalValue::asNumber() const {
     return { static_cast<double>(numerator) / static_cast<double>(denominator) };
 }
 
+/**
+ * @brief 将数值表示转换为 double 类型的数值。
+ * 
+ * @return 数值的浮点数表示
+ */
 std::optional<double> NumericValue::asNumber() const {
     return { value };
 }
@@ -159,6 +178,11 @@ std::string BooleanValue::toString() const {
     return value? "#t" : "#f";
 }
 
+/**
+ * @brief 将有理数表示转换为字符串。
+ * 
+ * @return 有理数的字符串表示
+ */
 std::string RationalValue::toString() const {
     if (denominator == 1) {
         return std::to_string(numerator);
@@ -166,6 +190,11 @@ std::string RationalValue::toString() const {
     return std::to_string(numerator) + "/" + std::to_string(denominator);
 }
 
+/**
+ * @brief 将数值表示转换为字符串。
+ * 
+ * @return 数值的字符串表示
+ */
 std::string NumericValue::toString() const {
     if (static_cast<int>(value) == value)
         return std::to_string(static_cast<int>(value));

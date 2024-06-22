@@ -242,11 +242,23 @@ public:
     virtual std::vector<ValuePtr> toVector() const override;
 };
 
+/**
+ * @brief 派生类 RationalValue，用于表示有理数。
+ * 
+ * @details 通过构造函数指定分子和分母，自动处理分母为负数的情况。
+ *          提供获取分子和分母的方法，以及将有理数转换为字符串和浮点数的方法。
+ */
 class RationalValue : public Value {
 private:
     int numerator;
     int denominator;
 public:
+    /**
+     * @brief 构造函数，指定分子和分母。
+     * 
+     * @param numerator 分子
+     * @param denominator 分母
+     */
     RationalValue(int numerator, int denominator) : Value(ValueType::RATIONAL_VALUE), numerator{numerator}, denominator{denominator} {
         if (this->denominator < 0) {
             this->numerator *= -1;
@@ -256,37 +268,93 @@ public:
 
     virtual ~RationalValue() = default;
 
+    /**
+     * @brief 获取分子。
+     * 
+     * @return 分子
+     */
     int getNumerator() const {
         return numerator;
     }
 
+    /**
+     * @brief 获取分母。
+     * 
+     * @return 分母
+     */
     int getDenominator() const {
         return denominator;
     }
 
+    /**
+     * @brief 将有理数转换为字符串表示。
+     * 
+     * @return 有理数的字符串表示
+     */
     virtual std::string toString() const override;
 
+    /**
+     * @brief 将有理数转换为浮点数表示。
+     * 
+     * @return 有理数的浮点数表示
+     */
     virtual std::optional<double> asNumber() const override;
 
+    /**
+     * @brief 将有理数转换为 ValuePtr 向量表示。
+     * 
+     * @return ValuePtr 向量
+     */
     virtual std::vector<ValuePtr> toVector() const override;
 };
 
+/**
+ * @brief 派生类 NumericValue，用于表示数值。
+ * 
+ * @details 通过构造函数指定数值。
+ *          提供获取数值和将数值转换为字符串和浮点数的方法。
+ */
 class NumericValue : public Value {
 private:
     double value;
 public:
+    /**
+     * @brief 构造函数，指定数值。
+     * 
+     * @param value 数值
+     */
     NumericValue(double value) : Value(ValueType::NUMERIC_VALUE), value{value} {}
 
     virtual ~NumericValue() = default;
 
+    /**
+     * @brief 获取数值。
+     * 
+     * @return 数值
+     */
     double getValue() const {
         return value;
     }
 
+    /**
+     * @brief 将数值转换为字符串表示。
+     * 
+     * @return 数值的字符串表示
+     */
     virtual std::string toString() const override;
 
+    /**
+     * @brief 将数值转换为浮点数表示。
+     * 
+     * @return 数值的浮点数表示
+     */
     virtual std::optional<double> asNumber() const override;
 
+    /**
+     * @brief 将数值转换为 ValuePtr 向量表示。
+     * 
+     * @return ValuePtr 向量
+     */
     virtual std::vector<ValuePtr> toVector() const override;
 };
 
