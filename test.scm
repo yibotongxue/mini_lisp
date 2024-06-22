@@ -32,7 +32,7 @@
 (displayln (length my-list)) ; Expected output: 5
 
 ;; Test reading from standard input
-(displayln"Enter a number: ")
+(display "Enter a number: ")
 (define user-input (read))
 (displayln user-input)
 

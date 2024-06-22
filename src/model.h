@@ -54,6 +54,7 @@ public:
 class File : public Model {
 private:
     std::string fileName;
+    std::deque<std::string> lines;
     /**
      * @brief 从文件中读取 Token。
      * 
@@ -61,13 +62,20 @@ private:
      * @throws FileError 如果打开或读取文件失败
      */
     std::deque<TokenPtr> readTokens() override;
+    int lineNumber{0};
 public:
     /**
      * @brief 构造函数，指定文件名。
      * 
      * @param fileName 文件名
      */
-    File(const std::string& fileName) : fileName{fileName} {}
+    File(const std::string& fileName);
+
+    File() = default;
+
+    int getLineNumber() const {
+        return lineNumber;
+    }
     
     /**
      * @brief 执行文件中的表达式。

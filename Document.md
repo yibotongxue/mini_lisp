@@ -102,3 +102,10 @@ mini_lisp C:/path/to/the/test.scm
 
 如果子句1为 `false` ，则依次执行后面的子句，否则不执行。
 
+### 5. 文件模式下的错误定位
+
+文件模式下，如果文件中某一条语句出现错误，将会在报错中指出大致的范围，报错方式：
+
+```powershell
+Error in line 3 to line 5 : Unimplement
+```

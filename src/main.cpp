@@ -1,11 +1,11 @@
 #include <iostream>
+#include <new>
+#include <stdexcept>
 #include <string>
 
-#include <stdexcept>
-#include <new>
+#include "../src/rjsj_test.hpp"
 #include "model.h"
 #include "reader.h"
-#include "../src/rjsj_test.hpp"
 
 struct TestCtx {
     std::shared_ptr<EvalEnv> env = EvalEnv::createEvalEnv();
@@ -24,36 +24,41 @@ int main(int argc, char** argv) {
     if (argc == 1) {
         while (true) {
             try {
-                std::cout << ">>> " ;
+                std::cout << ">>> ";
                 Repl().carryOut(env);
-            }
-            catch (std::runtime_error& e) {
+            } catch (std::runtime_error& e) {
                 std::cerr << "Error: " << e.what() << std::endl;
-            }
-            catch (std::bad_alloc& b) {
-                std::cerr << "Error: Unimplement which may cause bad_alloc." << std::endl;
-            }
-            catch (...) {
+            } catch (std::bad_alloc& b) {
+                std::cerr << "Error: Unimplement which may cause bad_alloc."
+                          << std::endl;
+            } catch (...) {
                 std::cerr << "Error: Unimplement." << std::endl;
             }
         }
-    }
-    else if (argc == 2) {
-        try{
+    } else if (argc == 2) {
+        int previousLineNumber = 0;
+        File file;
+        try {
             std::string fileName = argv[1];
-            File(argv[1]).carryOut(env);
+            file = File(argv[1]);
+            while (true) {
+                file.carryOut(env);
+                previousLineNumber = file.getLineNumber();
+            }
+        } catch (std::runtime_error& e) {
+            std::cerr << "Error in line " << std::to_string(previousLineNumber)
+                      << " to line " << std::to_string(file.getLineNumber())
+                      << ": " << e.what() << std::endl;
+        } catch (std::bad_alloc& b) {
+            std::cerr << "Error in line " << std::to_string(previousLineNumber)
+                      << " to line " << std::to_string(file.getLineNumber())
+                      << ": Unimplement." << std::endl;
+        } catch (...) {
+            std::cerr << "Error in line " << std::to_string(previousLineNumber)
+                      << " to line " << std::to_string(file.getLineNumber())
+                      << ": Unimplement." << std::endl;
         }
-        catch (std::runtime_error& e) {
-            std::cerr << "Error: " << e.what() << std::endl;
-        }
-        catch (std::bad_alloc& b) {
-            std::cerr << "Error: Unimplement." << std::endl;
-        }
-        catch (...) {
-            std::cerr << "Error: Unimplement." << std::endl;
-        }
-    }
-    else {
+    } else {
         std::cout << "The args are more than needed." << std::endl;
     }
 }

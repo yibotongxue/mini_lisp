@@ -1,20 +1,38 @@
 #include "model.h"
-#include "error.h"
+
+#include <fstream>
 #include <iostream>
 #include <stack>
 #include <string>
-#include <fstream>
+
+#include "error.h"
+
+File::File(const std::string& fileName) : fileName{fileName} {
+    std::ifstream file{fileName};
+    if (!file.is_open()) {
+        throw FileError("Open the file failed.");
+    }
+
+    if (file.fail()) {
+        throw FileError("File failed.");
+    }
+
+    std::string line;
+    while(std::getline(file, line)) {
+        lines.push_back(line);
+    }
+}
 
 /**
  * @brief 从标准输入读取Token并构建Token队列。
- * 
+ *
  * @return Token队列
  * @throws SyntaxError 如果括号不匹配
  */
 std::deque<TokenPtr> Repl::readTokens() {
     std::stack<int> leftParen{};
     std::deque<TokenPtr> tokens{};
-    int indentationLevel = 1; // 记录当前缩进层级
+    int indentationLevel = 1;  // 记录当前缩进层级
 
     while (true) {
         std::string line;
@@ -51,27 +69,26 @@ std::deque<TokenPtr> Repl::readTokens() {
             tokens.push_back(std::move(token));
         }
 
-        if (tokens.back()->getType() != TokenType::QUOTE 
-            && tokens.back()->getType() != TokenType::QUASIQUOTE 
-            && tokens.back()->getType() != TokenType::UNQUOTE 
-            && leftParen.empty()) {
-                return std::move(tokens);
+        if (tokens.back()->getType() != TokenType::QUOTE &&
+            tokens.back()->getType() != TokenType::QUASIQUOTE &&
+            tokens.back()->getType() != TokenType::UNQUOTE &&
+            leftParen.empty()) {
+            return std::move(tokens);
         }
         indentationLevel = leftParen.top() + 1;
-        std::cout << "... " << std::string(leftParen.top(), ' '); 
+        std::cout << "... " << std::string(leftParen.top(), ' ');
     }
 }
 
-
 /**
  * @brief 执行REPL中的表达式。
- * 
+ *
  * @param env 求值环境
  */
 void Repl::carryOut(std::shared_ptr<EvalEnv>& env) {
     auto tokens = Repl().readTokens();
     Parser parser(std::move(tokens));
-    while(!parser.empty()) {
+    while (!parser.empty()) {
         auto value = parser.parse();
         auto result = env->eval(value);
         std::cout << result->toString() << std::endl;
@@ -80,43 +97,67 @@ void Repl::carryOut(std::shared_ptr<EvalEnv>& env) {
 
 /**
  * @brief 从文件中读取Token。
- * 
+ *
  * @return 存储Token的deque
  * @throws FileError 如果打开或读取文件失败
  */
 std::deque<TokenPtr> File::readTokens() {
     std::deque<TokenPtr> tokens{};
-    std::ifstream file{ fileName };
 
-    if (!file.is_open()) {
-        throw FileError("Open the file failed.");
-    }
+    std::stack<int> leftParen{};
+    int indentationLevel = 1;  // 记录当前缩进层级
 
-    if (file.fail()) {
-        throw FileError("File failed.");
-    }
+    while (true) {
+        if (lineNumber >= lines.size()) {
+            std::exit(0);
+        }
+        std::string line = lines[lineNumber++];
 
-    std::string line;
-    
-    while(std::getline(file, line)) {
-        auto lineTokens = std::move(Tokenizer::tokenize(line));
+        for (int i = 0; i < static_cast<int>(line.size()); i++) {
+            if (line[i] == '(') {
+                leftParen.push(indentationLevel + i);
+            } else if (line[i] == ')') {
+                if (!leftParen.empty()) {
+                    leftParen.pop();
+                } else {
+                    throw SyntaxError("Unmatched parens.");
+                }
+            }
+        }
+
+        auto lineTokens = Tokenizer::tokenize(line);
+        if (lineTokens.size() == 0) {
+            if (tokens.empty()) {
+                return std::move(tokens);
+            } else {
+                indentationLevel = leftParen.top() + 1;
+                continue;
+            }
+        }
+
         for (auto& token : lineTokens) {
             tokens.push_back(std::move(token));
         }
-    }
 
-    return tokens;
+        if (tokens.back()->getType() != TokenType::QUOTE &&
+            tokens.back()->getType() != TokenType::QUASIQUOTE &&
+            tokens.back()->getType() != TokenType::UNQUOTE &&
+            leftParen.empty()) {
+            return std::move(tokens);
+        }
+        indentationLevel = leftParen.top() + 1;
+    }
 }
 
 /**
  * @brief 执行文件中的表达式。
- * 
+ *
  * @param env 求值环境
  */
 void File::carryOut(std::shared_ptr<EvalEnv>& env) {
     auto tokens = readTokens();
     Parser parser(std::move(tokens));
-    while(!parser.empty()) {
+    while (!parser.empty()) {
         auto value = parser.parse();
         env->eval(std::move(value));
     }
